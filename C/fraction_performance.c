@@ -159,7 +159,7 @@ void random_test(int min_tests)
   int *denominators=malloc(MAX_DENOMINATORS*sizeof(int));
   int n_tests=0,n_denominators=0;
   while(n_tests < min_tests && n_denominators < MAX_DENOMINATORS) {
-    int denominator=rand() % 100000;
+    int denominator=rand() % min_tests + 100;
     // make sure it's unique
     int i,found=0;
     for(i=0;i<n_denominators;i++) {
@@ -197,7 +197,7 @@ void syntax(const char* pgm)
   printf("      %s -s 100000\n",pgm);
   printf("   3) To run a minimum of 30000 random test\n");
   printf("      %s -r 30000\n",pgm);
-  printf("   3) To run a single test using denominator of 100000 and a minimum of 30000 random test\n");
+  printf("   4) To run a single test using denominator of 100000 and a minimum of 30000 random test\n");
   printf("      %s --single 100000 --random 30000\n",pgm);
 
   printf("\n");

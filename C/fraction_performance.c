@@ -2,6 +2,7 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#include <getopt.h>
 #include "fraction.h"
 
 #define TERMINAL_COLUMNS 50     // Columns in terminal -- used for displaying histogram
@@ -180,9 +181,70 @@ void random_test(int min_tests)
   free(denominators);
 }
 
+void syntax(const char* pgm)
+{
+  printf("Syntax: %s [-h | --help ]\n",pgm);
+  printf("        %s [ [-s | --single] N] [ [-r | --random] N ]\n",pgm);
+  printf("        %s\n\n",pgm);
+  printf("Where:  -h | --help prints this help message\n");
+  printf("        -s | --single N -- gather statistics using N as denominator (runs tests using fractions 1/N to (N-1)/N)\n");
+  printf("        -r | --random N -- gather statistics running a minimum of N tests using random denominators\n");
+  printf("        The default is to run a single test using 1000 as denominator and 1000 minimum random tests\n\n");
+  printf("Examples\n");
+  printf("   1) To run default case\n");
+  printf("      %s\n",pgm);
+  printf("   2) To run single test using denominator of 100000\n");
+  printf("      %s -s 100000\n",pgm);
+  printf("   3) To run a minimum of 30000 random test\n");
+  printf("      %s -r 30000\n",pgm);
+  printf("   3) To run a single test using denominator of 100000 and a minimum of 30000 random test\n");
+  printf("      %s --single 100000 --random 30000\n",pgm);
+
+  printf("\n");
+  exit(0);
+}
+
+static struct option long_options[] =
+    {
+    {"help",     no_argument,      0, 'h'},
+    {"single",  required_argument, 0, 's'},
+    {"random",  required_argument, 0, 'r'},
+    {0, 0, 0, 0}
+    };
+
 int main(int argc,char* argv[])
 {
-//  simple_test(1000);
-  random_test(1000);
+  int denominator=-1;
+  int min_tests=-1;
+  int c,option_index;
+  if(argc > 1) {
+    while ((c = getopt_long(argc, argv, "hs:r:",long_options,&option_index)) != -1) {
+      switch(c) {
+        case 'h':
+        case '?':
+          syntax(argv[0]);
+          break;
+
+        case 's':
+          denominator=atoi(optarg);
+          break;
+
+        case 'r':
+          min_tests=atoi(optarg);
+          break;
+
+        default:
+          syntax(argv[0]);
+          break;
+      }
+    }
+    if(denominator > 0)
+      simple_test(denominator);
+    if(min_tests>0)
+      random_test(min_tests);
+  } else {
+    simple_test(1000);
+    random_test(1000);
+  }
   return 0;
 }

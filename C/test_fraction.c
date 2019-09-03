@@ -17,8 +17,40 @@ void test_gcd()
   TEST("GCD(872452914,78241452) = 1",fraction_gcd(872452914,78241452)==6);
 }
 
-#define S(f,n,d) f.numerator_=n,f.denominator_=d
+#define S(f,n,d) fraction_set(&f,n,d)
+#define SM(f,w,n,d) fraction_set_mixed(&f,w,n,d)
 #define R(f,n,d) (f.numerator_==n && f.denominator_==d)
+
+void test_fraction_set()
+{
+  TESTCASE("Fraction set");
+  fraction_t f;
+
+  S(f,0,1);
+  TEST("Set 0/1 = 0/1",R(f,0,1));
+
+  S(f,1,1);
+  TEST("Set 1/1 = 1/1",R(f,1,1));
+
+  S(f,-2,3);
+  TEST("Set -2/3 = -2/3",R(f,-2,3));
+
+  S(f,2,-3);
+  TEST("Set 2/-3 = -2/3",R(f,-2,3));
+
+  S(f,-2,-3);
+  TEST("Set -2/-3 = 2/3",R(f,2,3));
+
+  SM(f,10,0,1);
+  TEST("Set 10 0/1 = 10/1",R(f,10,1));
+
+  SM(f,-10,2,3);
+  TEST("Set -10 2/3 = -32/3",R(f,-32,3));
+
+  SM(f,0,0,1);
+  TEST("Set 0 0/1 = 0/1",R(f,0,1));
+
+}
 
 void test_fraction_plus_fraction()
 {
@@ -357,10 +389,41 @@ void test_fraction_ge_fraction()
   TEST("-5/7 >= 25/35 - false ",!fraction_ge_fraction(f1,f2));
 }
 
+void test_fraction_to_double()
+{
+  TESTCASE("Fraction to double");
+  fraction_t f;
+
+  f=fraction_from_double(0.0);
+  TEST("0.0 = 0/1",R(f,0,1));
+
+  f=fraction_from_double(1.0);
+  TEST("1.0 = 1/1",R(f,1,1));
+
+  f=fraction_from_double(12.25);
+  TEST("12.25 = 49/4",R(f,49,4));
+
+  f=fraction_from_double(-2.5);
+  TEST("-2.5 = -5/2",R(f,-5,2));
+
+  f=fraction_from_double(-0.06);
+  TEST("-0.06 = -3/50",R(f,-3,50));
+
+  f=fraction_from_double(0.3);
+  TEST("0.3 = 3/10",R(f,3,10));
+
+  f=fraction_from_double(0.33);
+  TEST("0.33 = 33/100",R(f,33,100));
+
+  f=fraction_from_double(0.333333333);
+  TEST("0.3333333333 = 1/3",R(f,1,3));
+
+}
 
 test_function tests[] =
 {
   test_gcd,
+  test_fraction_set,
   test_fraction_plus_fraction,
   test_fraction_minus_fraction,
   test_fraction_times_fraction,
@@ -371,6 +434,7 @@ test_function tests[] =
   test_fraction_le_fraction,
   test_fraction_gt_fraction,
   test_fraction_ge_fraction,
+  test_fraction_to_double,
 };
 
 TEST_MAIN(tests)

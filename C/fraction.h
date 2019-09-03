@@ -11,6 +11,8 @@ struct fraction_s
 };
 
 int64_t fraction_gcd(int64_t,int64_t);
+void fraction_set(fraction_t*,int64_t,int64_t);
+#define fraction_set_mixed(f,w,n,d) fraction_set(f,w*d+(w<0 ? -1 : 1)*n,d)
 
 fraction_t fraction_plus_fraction(fraction_t,fraction_t);
 fraction_t fraction_minus_fraction(fraction_t,fraction_t);
@@ -28,6 +30,8 @@ int fraction_cmp(fraction_t,fraction_t);
 
 extern double fraction_epsilon;
 fraction_t fraction_from_double(double);
+#define double_to_fraction(d) fraction_from_double(d)
+double fraction_to_double(fraction_t);
 
 void fraction_to_s(fraction_t,char*,int n);
 void fraction_as_mixed_fraction_to_s(fraction_t,char*,int n);

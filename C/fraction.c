@@ -19,7 +19,7 @@ int64_t fraction_gcd(int64_t a,int64_t b)
   Reduces numerator and denominator.
   Assignes to fraction.
 */
-static void fraction_adjust(fraction_t* f,int64_t n,int64_t d)
+void fraction_set(fraction_t* f,int64_t n,int64_t d)
 {
   if(d<0) {
     d=-d;
@@ -33,7 +33,7 @@ static void fraction_adjust(fraction_t* f,int64_t n,int64_t d)
 fraction_t fraction_plus_fraction(fraction_t a,fraction_t b)
 {
   fraction_t f;
-  fraction_adjust(&f,
+  fraction_set(&f,
         ((int64_t)a.numerator_)*((int64_t)b.denominator_) + ((int64_t)b.numerator_)*((int64_t)a.denominator_),
         ((int64_t)a.denominator_)*((int64_t)b.denominator_));
   return f;
@@ -42,7 +42,7 @@ fraction_t fraction_plus_fraction(fraction_t a,fraction_t b)
 fraction_t fraction_minus_fraction(fraction_t a,fraction_t b)
 {
   fraction_t f;
-  fraction_adjust(&f,
+  fraction_set(&f,
         ((int64_t)a.numerator_)*((int64_t)b.denominator_) - ((int64_t)b.numerator_)*((int64_t)a.denominator_),
         ((int64_t)a.denominator_)*((int64_t)b.denominator_));
   return f;
@@ -51,7 +51,7 @@ fraction_t fraction_minus_fraction(fraction_t a,fraction_t b)
 fraction_t fraction_times_fraction(fraction_t a,fraction_t b)
 {
   fraction_t f;
-  fraction_adjust(&f,
+  fraction_set(&f,
         ((int64_t)a.numerator_)*((int64_t)b.numerator_),
         ((int64_t)a.denominator_)*((int64_t)b.denominator_));
   return f;
@@ -60,7 +60,7 @@ fraction_t fraction_times_fraction(fraction_t a,fraction_t b)
 fraction_t fraction_divided_by_fraction(fraction_t a,fraction_t b)
 {
   fraction_t f;
-  fraction_adjust(&f,
+  fraction_set(&f,
         ((int64_t)a.numerator_)*((int64_t)b.denominator_),
         ((int64_t)a.denominator_)*((int64_t)b.numerator_));
   return f;
@@ -71,7 +71,7 @@ int fraction_cmp(fraction_t lhs,fraction_t rhs)
   return ((int64_t)lhs.numerator_)*((int64_t)rhs.denominator_) - ((int64_t)rhs.numerator_)*((int64_t)lhs.denominator_);
 }
 
-double fraction_epsilon=5e-8;
+double fraction_epsilon=5e-6;
 
 #ifdef CALCULATE_LOOP_STATISTICS
 int loops;
@@ -82,7 +82,7 @@ fraction_t fraction_from_double(double d)
   fraction_t f;
   int sign = d < 0 ? -1 : 1;
   int64_t whole = abs(d);
-  double fract=fabs(d-whole);
+  double fract=fabs(d)-whole;
   int64_t numerator=0;
   int64_t denominator=1; // Round to next whole number if very close to it
 #ifdef CALCULATE_LOOP_STATISTICS
@@ -114,10 +114,14 @@ fraction_t fraction_from_double(double d)
     }
   }
   // Reduce fraction by dividing numerator and denominator by greatest common divisor
-  numerator=sign*(whole*denominator+numerator);
-  fraction_adjust(&f,sign*numerator,denominator);
+  fraction_set(&f,sign*(whole*denominator+numerator),denominator);
 
   return f;
+}
+
+double fraction_to_double(fraction_t f)
+{
+  return ((double)f.numerator_)/((double)f.denominator_);
 }
 
 // String shou

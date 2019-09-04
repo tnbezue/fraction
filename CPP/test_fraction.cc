@@ -390,9 +390,9 @@ void test_fraction_ge_fraction()
   TEST("-5/7 >= 25/35 - false ",!(f1>=f2));
 }
 
-void test_fraction_to_double()
+void test_fraction_from_double()
 {
-  TESTCASE("Fraction to double");
+  TESTCASE("Fraction from double");
   fraction_t f;
 
   f=0.0;
@@ -435,7 +435,7 @@ test_function tests[] =
   test_fraction_le_fraction,
   test_fraction_gt_fraction,
   test_fraction_ge_fraction,
-  test_fraction_to_double,
+  test_fraction_from_double,
 };
 
 TEST_MAIN(tests)

@@ -35,7 +35,7 @@ fraction_t& fraction_t::operator=(double d)
   int64_t whole = abs(d);
   double fract=fabs(d)-whole;
   int64_t numerator=0;
-  int64_t denominator=1; // Round to next whole number if very close to it
+  int64_t denominator=1;
 #ifdef CALCULATE_LOOP_STATISTICS
   loops=0;
 #endif

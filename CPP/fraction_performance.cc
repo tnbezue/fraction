@@ -83,20 +83,6 @@ void stats_t::calc(const freq_t& freq_data)
   standard_deviation_=sqrt(var/(size_-1));
 }
 
-void do_test(int denominator,freq_t& tick_freq,freq_t& loop_freq)
-{
-  int i;
-  for(i=1;i<denominator;i++) {
-    clock_t start=clock();
-    fraction_t(((double)i)/((double)denominator));
-    int ticks=clock()-start;
-    tick_freq[ticks]++;
-#ifdef CALCULATE_LOOP_STATISTICS
-    loop_freq[loops]++;
-#endif
-  }
-}
-
 void display_graph(const freq_t &freq_data,const string& xlabel,const string& ylabel)
 {
   string histogram;
@@ -143,6 +129,20 @@ void show_results(const freq_t& tick_freq,const freq_t& loop_freq)
   printf("  make clean\n");
   printf("  CXXFLAGS=-DCALCULATE_LOOP_STATISTICS make\n");
 #endif
+}
+
+void do_test(int denominator,freq_t& tick_freq,freq_t& loop_freq)
+{
+  int i;
+  for(i=1;i<denominator;i++) {
+    clock_t start=clock();
+    fraction_t(((double)i)/((double)denominator));
+    int ticks=clock()-start;
+    tick_freq[ticks]++;
+#ifdef CALCULATE_LOOP_STATISTICS
+    loop_freq[loops]++;
+#endif
+  }
 }
 
 /*

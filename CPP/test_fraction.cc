@@ -10,7 +10,7 @@ void test_gcd()
 {
   TESTCASE("Greatest Common Divisor");
 
-  TEST("GCD(0,2) = 1",fraction_t::gcd(0,2)==2);
+  TEST("GCD(0,2) = 2",fraction_t::gcd(0,2)==2);
   TEST("GCD(10,1) = 1",fraction_t::gcd(10,1)==1);
   TEST("GCD(105,15) = 1",fraction_t::gcd(105,15)==15);
   TEST("GCD(10,230) = 1",fraction_t::gcd(10,230)==10);
@@ -278,7 +278,7 @@ void test_fraction_lt_fraction()
 
   S(f1,0,1);
   S(f2,1,1);
-  TEST("0/1 < 1/2 - true ",(f1<f2));
+  TEST("0/1 < 1/1 - true ",(f1<f2));
 
   S(f1,2,3);
   S(f2,-2,3);

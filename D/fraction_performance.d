@@ -163,9 +163,26 @@ void random_test(int min_tests)
   show_results(tick_freq,loop_freq);
 }
 
-void syntax()
+void syntax(string pgm)
 {
+  stdout.writeln("Syntax: " , pgm , " [-h | --help ]");
+  stdout.writeln("        " , pgm , " [ [-s | --single] N] [ [-r | --random] N ]");
+  stdout.writeln("        " , pgm ,"\n");
+  stdout.writeln("Where:  -h | --help prints this help message");
+  stdout.writeln("        -s | --single N -- gather statistics using N as denominator (runs tests using fractions 1/N to (N-1)/N)");
+  stdout.writeln("        -r | --random N -- gather statistics running a minimum of N tests using random denominators");
+  stdout.writeln("        The default is to run a single test using 1000 as denominator and 1000 minimum random tests\n");
+  stdout.writeln("Examples");
+  stdout.writeln("   1) To run default case");
+  stdout.writeln("      " , pgm , "\n");
+  stdout.writeln("   2) To run single test using denominator of 100000");
+  stdout.writeln("      " , pgm , " -s 100000\n");
+  stdout.writeln("   3) To run a minimum of 30000 random test");
+  stdout.writeln("      " , pgm , " -r 30000\n");
+  stdout.writeln("   4) To run a single test using denominator of 100000 and a minimum of 30000 random test");
+  stdout.writeln("      " , pgm , " --single 100000 --random 30000\n");
 }
+
 void main(string[] args)
 {
   if(args.length > 1) {
@@ -178,11 +195,12 @@ void main(string[] args)
       );
     if(helpInformation.helpWanted)
     {
-      syntax();
+      syntax(args[0]);
       return;
     }
     } catch(std.getopt.GetOptException e) {
-      syntax();
+      stdout.writeln("Invalid option ");
+      syntax(args[0]);
       return;
     }
     if(denominator>0)
@@ -190,7 +208,7 @@ void main(string[] args)
     if(min_tests > 0)
       random_test(min_tests);
   } else {
-    single_test(100);
+    single_test(1000);
     random_test(1000);
   }
 }

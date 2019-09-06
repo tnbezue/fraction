@@ -169,6 +169,11 @@ public final class Fraction extends Number implements Comparable<Fraction> {
     return r;
   }
 
+  public void Round(int denom)
+  {
+    set(denom*numerator_/denominator_,denom);
+  }
+
   public double doubleValue()
   {
     return ((double)numerator_)/((double)denominator_);

@@ -266,6 +266,24 @@ public class TestFraction
 
   }
 
+  static void TestRound()
+  {
+    TestHarness.TestCase("Fraction divide");
+    Fraction f=new Fraction();
+
+    S(f,3333,10000);
+    f.Round(100);
+    TestHarness.Test("Round(3333/10000,100) = 33/100",R(f,33,100));
+
+    S(f,3333,10000);
+    f.Round(10);
+    TestHarness.Test("Round(3333/10000,100) = 3/10",R(f,3,10));
+
+    S(f,639,5176);
+    f.Round(100);
+    TestHarness.Test("Round(639/5176,100) = 3/25",R(f,3,25));
+  }
+
   static void TestEquality()
   {
     Fraction f1=new Fraction();
@@ -282,6 +300,7 @@ public class TestFraction
     new TestHarness.TestMethod() { public void test() { TestSub(); } },
     new TestHarness.TestMethod() { public void test() { TestMul(); } },
     new TestHarness.TestMethod() { public void test() { TestDiv(); } },
+    new TestHarness.TestMethod() { public void test() { TestRound(); } },
   };
 
   public static void main(String []args) {

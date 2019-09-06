@@ -15,6 +15,8 @@ class Fraction {
     this(double d) { set(d); }
     this(Fraction f) { set(f.numerator_,f.denominator_); }
 
+    int numerator() const { return numerator_; }
+    int denominator() const { return denominator_; }
     static long gcd(long a,long b)
     {
       long t;
@@ -24,15 +26,6 @@ class Fraction {
         a = t;
       }
       return a;
-    }
-
-    unittest {
-      assert(Fraction.gcd(0,2)==2);
-      assert(Fraction.gcd(10,1)==1);
-      assert(Fraction.gcd(105,15)==15);
-      assert(Fraction.gcd(10,230)==10);
-      assert(Fraction.gcd(28,234)==2);
-      assert(Fraction.gcd(872452914,78241452)==6);
     }
 
     void set(long n,long d) {
@@ -45,45 +38,7 @@ class Fraction {
       denominator_=d/divisor;
     }
 
-    unittest {
-      Fraction f=new Fraction;
-      f.set(0,1);
-      assert(f.numerator_==0 && f.denominator_==1);
-
-      f.set(1,-3);
-      assert(f.numerator_==-1 && f.denominator_==3);
-
-      f.set(-1,-3);
-      assert(f.numerator_==1 && f.denominator_==3);
-
-      f.set(-6,-8);
-      assert(f.numerator_==3 && f.denominator_==4);
-
-      f.set(2,4);
-      assert(f.numerator_==1 && f.denominator_==2);
-
-    }
     void set(int w,int n,int d) { set(w*d+(w<0?-1:1)*n,d); }
-
-    unittest {
-      Fraction f=new Fraction;
-
-      f.set(-10,2,3);
-      assert(f.numerator_==-32 && f.denominator_==3);
-
-      f.set(0,-1,3);
-      assert(f.numerator_==-1 && f.denominator_==3);
-
-      f.set(0,0,1);
-      assert(f.numerator_==0 && f.denominator_==1);
-
-      f.set(0,1,3);
-      assert(f.numerator_==1 && f.denominator_==3);
-
-      f.set(10,2,3);
-      assert(f.numerator_==32 && f.denominator_==3);
-
-    }
 
     static double epsilon=0.000005;
 
@@ -129,34 +84,6 @@ class Fraction {
       set(sign*(whole*denominator+numerator),denominator);
     }
 
-    unittest {
-      Fraction f = new Fraction;
-
-      f.set(0.0);
-      assert(f.numerator_==0 && f.denominator_==1);
-
-      f.set(1.0);
-      assert(f.numerator_==1 && f.denominator_==1);
-
-      f.set(12.25);
-      assert(f.numerator_==49 && f.denominator_==4);
-
-      f.set(-2.5);
-      assert(f.numerator_==-5 && f.denominator_==2);
-
-      f.set(-0.06);
-      assert(f.numerator_==-3 && f.denominator_==50);
-
-      f.set(0.3);
-      assert(f.numerator_==3 && f.denominator_==10);
-
-      f.set(0.33);
-      assert(f.numerator_==33 && f.denominator_==100);
-
-      f.set(0.333333333);
-      assert(f.numerator_==1 && f.denominator_==3);
-    }
-
     override bool opEquals(Object o)
     {
       return opCmp(o) == 0;
@@ -170,212 +97,10 @@ class Fraction {
         assert(0,"Can compare object to Fraction");
     }
 
-    unittest {
-      // Equality
-      Fraction f1=new Fraction;
-      Fraction f2=new Fraction;
-
-      f1.set(0,1);
-      f2.set(0,1);
-      assert(f1 == f2);
-
-      f2.set(1,2);
-      assert(!(f1 == f2));
-
-      f1.set(2,3);
-      f2.set(-2,3);
-      assert(!(f1 == f2));
-
-      f1.set(2,3);
-      f2.set(16,24);
-      assert(f1 == f2);
-
-      f1.set(1,3);
-      f2.set(1,3);
-      assert(f1 == f2);
-
-      f1.set(-5,7);
-      f2.set(25,35);
-      assert(!(f1 == f2));
-    }
-
-    unittest {
-      // Inequality
-      Fraction f1=new Fraction;
-      Fraction f2=new Fraction;
-
-      f1.set(0,1);
-      f2.set(0,1);
-      assert(!(f1 != f2));
-
-      f2.set(1,2);
-      assert(f1 != f2);
-
-      f1.set(2,3);
-      f2.set(-2,3);
-      assert(f1 != f2);
-
-      f1.set(2,3);
-      f2.set(16,24);
-      assert(!(f1 != f2));
-
-      f1.set(1,3);
-      f2.set(1,3);
-      assert(!(f1 != f2));
-
-      f1.set(-5,7);
-      f2.set(25,35);
-      assert(f1 != f2);
-    }
-
-    unittest {
-      // Less than
-      Fraction f1=new Fraction;
-      Fraction f2=new Fraction;
-
-      f1.set(0,1);
-      f2.set(0,1);
-      assert(!(f1<f2));
-
-      f1.set(0,1);
-      f2.set(1,1);
-      assert(f1<f2);
-
-      f1.set(2,3);
-      f2.set(-2,3);
-      assert(!(f1<f2));
-
-      f1.set(2,3);
-      f2.set(16,24);
-      assert(!(f1<f2));
-
-      f1.set(1,3);
-      f2.set(1,3);
-      assert(!(f1<f2));
-
-      f1.set(-5,7);
-      f2.set(25,35);
-      assert(f1<f2);
-    }
-
-    unittest {
-      // Less than equal
-      Fraction f1=new Fraction;
-      Fraction f2=new Fraction;
-
-      f1.set(0,1);
-      f2.set(0,1);
-      assert(f1<=f2);
-
-      f1.set(0,1);
-      f2.set(1,1);
-      assert(f1<=f2);
-
-      f1.set(2,3);
-      f2.set(-2,3);
-      assert(!(f1<=f2));
-
-      f1.set(2,3);
-      f2.set(16,24);
-      assert(f1<=f2);
-
-      f1.set(1,3);
-      f2.set(1,3);
-      assert(f1<=f2);
-
-      f1.set(-5,7);
-      f2.set(25,35);
-      assert(f1<=f2);
-    }
-
-    unittest {
-      // Greater than
-      Fraction f1=new Fraction;
-      Fraction f2=new Fraction;
-
-      f1.set(0,1);
-      f2.set(0,1);
-      assert(!(f1>f2));
-
-      f1.set(0,1);
-      f2.set(1,1);
-      assert(!(f1>f2));
-
-      f1.set(2,3);
-      f2.set(-2,3);
-      assert(f1>f2);
-
-      f1.set(2,3);
-      f2.set(16,24);
-      assert(!(f1>f2));
-
-      f1.set(1,3);
-      f2.set(1,3);
-      assert(!(f1>f2));
-
-      f1.set(-5,7);
-      f2.set(25,35);
-      assert(!(f1>f2));
-    }
-
-    unittest {
-      // Greater than equal
-      Fraction f1=new Fraction;
-      Fraction f2=new Fraction;
-
-      f1.set(0,1);
-      f2.set(0,1);
-      assert(f1>=f2);
-
-      f1.set(0,1);
-      f2.set(1,1);
-      assert(!(f1>=f2));
-
-      f1.set(2,3);
-      f2.set(-2,3);
-      assert(f1>=f2);
-
-      f1.set(2,3);
-      f2.set(16,24);
-      assert(f1>=f2);
-
-      f1.set(1,3);
-      f2.set(1,3);
-      assert(f1>=f2);
-
-      f1.set(-5,7);
-      f2.set(25,35);
-      assert(!(f1>=f2));
-    }
 
     double opCast(T: double)() const
     {
       return cast(double)numerator_/cast(double)denominator_;
-    }
-
-    unittest {
-      Fraction f=new Fraction;
-      double value;
-
-      value=0;
-      f.set(0,1);
-      assert(fabs(cast(double)f - value) < Fraction.epsilon);
-
-      value=1;
-      f.set(1,1);
-      assert(fabs(cast(double)f - value) < Fraction.epsilon);
-
-      value=-1;
-      f.set(-1,1);
-      assert(fabs(cast(double)f - value) < Fraction.epsilon);
-
-      value=-0.06;
-      f.set(-3,50);
-      assert(fabs(cast(double)f - value) < Fraction.epsilon);
-
-      value=12.25;
-      f.set(49,4);
-      assert(fabs(cast(double)f - value) < Fraction.epsilon);
     }
 
     void opOpAssign(string op)(Fraction rhs)
@@ -403,195 +128,9 @@ class Fraction {
       return f;
     }
 
-    unittest {
-      // Addition
-      Fraction f1=new Fraction;
-      Fraction f2= new Fraction;
-      Fraction f3;
-
-      f1.set(0,1);
-      f2.set(0,1);
-      f3= f1 + f2;
-      assert(f3.numerator_==0 && f3.denominator_==1);
-
-      f1.set(0,1);
-      f2.set(1,1);
-      f3= f1 + f2;
-      assert(f3.numerator_==1 && f3.denominator_==1);
-
-      f1.set(3,5);
-      f2.set(-2,9);
-      f3= f1 + f2;
-      assert(f3.numerator_==17 && f3.denominator_==45);
-
-      f1.set(-2,8);
-      f2.set(-6,8);
-      f3= f1 + f2;
-      assert(f3.numerator_==-1 && f3.denominator_==1);
-
-      f1.set(7,3);
-      f2.set(10,7);
-      f3= f1 + f2;
-      assert(f3.numerator_==79 && f3.denominator_==21);
-
-      f1.set(-5,7);
-      f2.set(25,35);
-      f3= f1 + f2;
-      assert(f3.numerator_==0 && f3.denominator_==1);
-    }
-
-    unittest {
-      // Subtraction
-      Fraction f1=new Fraction;
-      Fraction f2= new Fraction;
-      Fraction f3;
-
-      f1.set(0,1);
-      f2.set(0,1);
-      f3= f1 - f2;
-      assert(f3.numerator_==0 && f3.denominator_==1);
-
-      f1.set(0,1);
-      f2.set(1,1);
-      f3= f1 - f2;
-      assert(f3.numerator_==-1 && f3.denominator_==1);
-
-      f1.set(3,5);
-      f2.set(-2,9);
-      f3= f1 - f2;
-      assert(f3.numerator_==37 && f3.denominator_==45);
-
-      f1.set(-2,8);
-      f2.set(-6,8);
-      f3= f1 - f2;
-      assert(f3.numerator_==1 && f3.denominator_==2);
-
-      f1.set(7,3);
-      f2.set(10,7);
-      f3= f1 - f2;
-      assert(f3.numerator_==19 && f3.denominator_==21);
-
-      f1.set(-5,7);
-      f2.set(25,35);
-      f3= f1 - f2;
-      assert(f3.numerator_==-10 && f3.denominator_==7);
-    }
-
-    unittest {
-      // Multiply
-      Fraction f1=new Fraction;
-      Fraction f2= new Fraction;
-      Fraction f3;
-
-      f1.set(0,1);
-      f2.set(0,1);
-      f3= f1 * f2;
-      assert(f3.numerator_==0 && f3.denominator_==1);
-
-      f1.set(0,1);
-      f2.set(1,1);
-      f3= f1 * f2;
-      assert(f3.numerator_==0 && f3.denominator_==1);
-
-      f1.set(3,5);
-      f2.set(-2,9);
-      f3= f1 * f2;
-      assert(f3.numerator_==-2 && f3.denominator_==15);
-
-      f1.set(-2,8);
-      f2.set(-6,8);
-      f3= f1 * f2;
-      assert(f3.numerator_==3 && f3.denominator_==16);
-
-      f1.set(7,3);
-      f2.set(10,7);
-      f3= f1 * f2;
-      assert(f3.numerator_==10 && f3.denominator_==3);
-
-      f1.set(-5,7);
-      f2.set(25,35);
-      f3= f1 * f2;
-      assert(f3.numerator_==-25 && f3.denominator_==49);
-    }
-
-    unittest {
-      // Divide
-      Fraction f1=new Fraction;
-      Fraction f2= new Fraction;
-      Fraction f3;
-
-      f1.set(0,1);
-      f2.set(1,1);
-      f3= f1 / f2;
-      assert(f3.numerator_==0 && f3.denominator_==1);
-
-      f1.set(3,5);
-      f2.set(-2,9);
-      f3= f1 / f2;
-      assert(f3.numerator_==-27 && f3.denominator_==10);
-
-      f1.set(-2,8);
-      f2.set(-6,8);
-      f3= f1 / f2;
-      assert(f3.numerator_==1 && f3.denominator_==3);
-
-      f1.set(7,3);
-      f2.set(10,7);
-      f3= f1 / f2;
-      assert(f3.numerator_==49 && f3.denominator_==30);
-
-      f1.set(-5,7);
-      f2.set(25,35);
-      f3= f1 / f2;
-      assert(f3.numerator_==-1 && f3.denominator_==1);
-    }
-
-    void opAssign(int n)
-    {
-      set(n,1);
-    }
-
-    unittest {
-
-      Fraction f= new Fraction;
-
-      f=0;
-      assert(f.numerator_==0 && f.denominator_==1);
-
-      f=1;
-      assert(f.numerator_==1 && f.denominator_==1);
-
-      f=-10;
-      assert(f.numerator_==-10 && f.denominator_==1);
-
-      f=10;
-      assert(f.numerator_==10 && f.denominator_==1);
-    }
-
     void opAssign(double d)
     {
       set(d);
-    }
-
-    unittest {
-
-      Fraction f= new Fraction;
-
-      f=-10.06;
-      assert(f.numerator_==-503 && f.denominator_==50);
-
-      f=-0.06;
-      assert(f.numerator_==-3 && f.denominator_==50);
-
-      f=0.0;
-      assert(f.numerator_==0 && f.denominator_==1);
-
-      f=0.06;
-      assert(f.numerator_==3 && f.denominator_==50);
-
-      f=10.06;
-      assert(f.numerator_==503 && f.denominator_==50);
-
     }
 
     override string toString() const
@@ -599,25 +138,6 @@ class Fraction {
       if(denominator_ == 1)
         return format("%s",numerator_);
       return format("%s/%s",numerator_,denominator_);
-    }
-
-    unittest {
-      Fraction f= new Fraction;
-
-      f=-10.06;
-      assert(f.toString() == "-503/50");
-
-      f=-0.06;
-      assert(f.toString() == "-3/50");
-
-      f=0.0;
-      assert(f.toString() == "0");
-
-      f=0.06;
-      assert(f.toString() == "3/50");
-
-      f=10.06;
-      assert(f.toString() == "503/50");
     }
 
     string toStringMixed() const
@@ -630,31 +150,10 @@ class Fraction {
       return format("%s %s/%s",whole,abs(numerator_-whole*denominator_),denominator_);
     }
 
-    unittest {
-      Fraction f= new Fraction;
-
-      f=-10.06;
-      stdout.writeln(f.toStringMixed());
-      assert(f.toStringMixed() == "-10 3/50");
-
-      f=-0.06;
-      assert(f.toStringMixed() == "-3/50");
-
-      f=0.0;
-      assert(f.toStringMixed() == "0");
-
-      f=0.06;
-      assert(f.toStringMixed() == "3/50");
-
-      f=10.06;
-      assert(f.toStringMixed() == "10 3/50");
+    void round(int denom)
+    {
+      set(cast(long)denom*cast(long)numerator_/cast(long)denominator_,cast(long)denom);
     }
 
 }
 
-version(unittest) {
-void main(string[] args)
-{
-  Fraction f = new Fraction;
-}
-}

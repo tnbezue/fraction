@@ -2,10 +2,12 @@
 Provide class and methods for fraction operations.
 
 ## Background
-I wanted a method for converting a floating point number to a fraction.
+I started by looking for a method for converting a floating point number to a fraction.
 After a short lived internet search, I decided to create my own.
 Afterwards, I wanted to compare mine to what others had done.
 However, I did not find any that used the same method that I used. So, I decided to share my solution.
+
+I further decided to create a fraction class which allows adding, subtracting, etc.
 
 ## Goals
 * Efficiently convert floating point numbers to fractions (convert 0.3 to 3/10, 0.33 to 33/100,

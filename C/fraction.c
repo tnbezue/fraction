@@ -124,6 +124,15 @@ double fraction_to_double(fraction_t f)
   return ((double)f.numerator_)/((double)f.denominator_);
 }
 
+// If denominator is greater than specified denom, then fraction is adjusted to use
+// new denominator.
+void fraction_round(fraction_t* f,int denom)
+{
+  if(f->denominator_ > denom) {
+    fraction_set(f,denom*f->numerator_/f->denominator_,denom);
+  }
+}
+
 // String shou
 void fraction_to_s(fraction_t f,char* str,int n)
 {

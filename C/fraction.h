@@ -32,6 +32,7 @@ extern double fraction_epsilon;
 fraction_t fraction_from_double(double);
 #define double_to_fraction(d) fraction_from_double(d)
 double fraction_to_double(fraction_t);
+void fraction_round(fraction_t*,int);
 
 void fraction_to_s(fraction_t,char*,int n);
 void fraction_as_mixed_fraction_to_s(fraction_t,char*,int n);

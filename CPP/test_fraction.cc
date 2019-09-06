@@ -421,6 +421,24 @@ void test_fraction_from_double()
 
 }
 
+void test_round()
+{
+  TESTCASE("Fraction round");
+  fraction_t f;
+
+  S(f,3333,10000);
+  f.round(100);
+  TEST("Round(3333/10000,100) = 33/100",R(f,33,100));
+
+  S(f,3333,10000);
+  f.round(10);
+  TEST("Round(3333/10000,10) = 3/10",R(f,3,10));
+
+  S(f,639,5176);
+  f.round(100);
+  TEST("Round(639/5176,100) = 3/25",R(f,3,25));
+}
+
 test_function tests[] =
 {
   test_gcd,
@@ -436,6 +454,7 @@ test_function tests[] =
   test_fraction_gt_fraction,
   test_fraction_ge_fraction,
   test_fraction_from_double,
+  test_round,
 };
 
 TEST_MAIN(tests)

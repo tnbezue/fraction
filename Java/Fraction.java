@@ -82,8 +82,9 @@ public final class Fraction extends Number implements Comparable<Fraction> {
 
   public void set(double d)
   {
-    long whole = (long)d;
-    double fract=Math.abs(d-whole);
+    long sign = d<0 ? -1 : 1;
+    long whole = Math.abs((long)d);
+    double fract=Math.abs(d)-whole;
     long numerator=0;
     long denominator=1; // Round to next whole number if very close to it
     if(fract > Fraction.epsilon) {
@@ -109,7 +110,7 @@ public final class Fraction extends Number implements Comparable<Fraction> {
       }
     }
 
-    set(whole*denominator+(whole < 0 ? -1 : 1)*numerator,denominator);
+    set(sign*(whole*denominator+numerator),denominator);
   }
 
   public void set(String s)
@@ -171,7 +172,7 @@ public final class Fraction extends Number implements Comparable<Fraction> {
 
   public void Round(int denom)
   {
-    set(denom*numerator_/denominator_,denom);
+    set((long)Math.round((double)denom*(double)numerator_/(double)denominator_),(long)denom);
   }
 
   public double doubleValue()
@@ -231,8 +232,8 @@ public final class Fraction extends Number implements Comparable<Fraction> {
     return s;
   }
 
-  static private Pattern wnd=Pattern.compile("^\\s*(\\d+)\\s+(\\d+)/(\\d+)\\s*");
-  static private Pattern nd=Pattern.compile("^\\s*(\\d+)/(\\d+)\\s*");
+  static private Pattern wnd=Pattern.compile("^\\s*([+-]?\\d+)\\s+(\\d+)/(\\d+)\\s*");
+  static private Pattern nd=Pattern.compile("^\\s*([+-]?\\d+)/(\\d+)\\s*");
 
   static Fraction parseFraction(String s)
   {

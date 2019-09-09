@@ -67,36 +67,6 @@ public class FrequencyArray
 }
 
 
-/*
-  LowValueFrequencyArray
-  The frequency is not low, it is the value for which the frequency is counted that is low.
-  Expected values are so low that the values are used as indexes.
-*/
-/*
-struct LowValueFrequencyArray {
-  // Increase size of array if an exception is thrown
-  int [] _frequencies; // = new int[] { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-  int _maxFreq;
-  public LowValueFrequencyArray(int n)
-  {
-    _maxFreq=0;
-    _frequencies = new int[n];
-    for(int i=0;i<n;i++) _frequencies[i]=0;
-  }
-  public void Increment(int i)
-  {
-    if(i>_frequencies.Length)
-      Console.WriteLine(String.Format("I ({0}) > length ({1})",i,_frequencies.Length));
-    _frequencies[i]++;
-    if(_frequencies[i]>MaxFreq)
-      _maxFreq=_frequencies[i];
-  }
-
-  public int Frequency(int i) { return _frequencies[i]; }
-  public int MaxFreq { get { return _maxFreq; }}
-  public int Length { get { return _maxFreq+1; }}
-}
-*/
 class Stats {
   private double _average;
   private double _standard_deviation;
@@ -231,13 +201,109 @@ class FractionPerformance
     loop_freq.Sort();
     ShowResults(tick_freq,loop_freq);
   }
+
+  static void RandomTest(int minTests)
+  {
+    Random rnd = new Random();
+    ArrayList denominators = new ArrayList();
+    int nTests=0;
+    while(nTests < minTests) {
+      int denominator=rnd.Next(minTests,214748364) % minTests;
+      // Make sure it's a unique denominator
+      bool found=false;
+      foreach ( int dem in denominators )
+        if(dem == denominator) {
+          found=true;
+          break;
+        }
+      if(!found) {
+        denominators.Add(denominator);
+        nTests += denominator-1;
+      }
+    }
+
+    FrequencyArray tick_freq = new FrequencyArray();
+    FrequencyArray loop_freq = new FrequencyArray();
+    foreach (int denominator in denominators) {
+      DoTest(denominator,tick_freq,loop_freq);
+    }
+    tick_freq.Sort();
+    loop_freq.Sort();
+    ShowResults(tick_freq,loop_freq);
+  }
+
+  static void Syntax()
+  {
+    string pgm = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
+    Console.WriteLine("Syntax: {0} [-h | --help ]",pgm);
+    Console.WriteLine("        {0} [ [-s | --single] N] [ [-r | --random] N ]",pgm);
+    Console.WriteLine("        {0}\n",pgm);
+    Console.WriteLine("Where:  -h | --help prints this help message");
+    Console.WriteLine("        -s | --single N -- gather statistics using N as denominator (runs tests using fractions 1/N to (N-1)/N)");
+    Console.WriteLine("        -r | --random N -- gather statistics running a minimum of N tests using random denominators");
+    Console.WriteLine("        The default is to run a single test using 1000 as denominator and 1000 minimum random tests\n");
+    Console.WriteLine("Examples");
+    Console.WriteLine("   1) To run default case");
+    Console.WriteLine("      {0}\n",pgm);
+    Console.WriteLine("   2) To run single test using denominator of 100000");
+    Console.WriteLine("      {0} -s 100000\n",pgm);
+    Console.WriteLine("   3) To run a minimum of 30000 random test");
+    Console.WriteLine("      {0} -r 30000\n",pgm);
+    Console.WriteLine("   4) To run a single test using denominator of 100000 and a minimum of 30000 random test");
+    Console.WriteLine("      {0} --single 100000 --random 30000\n",pgm);
+  }
   public static void Main(string[] args)
   {
-/*    Fraction f = new Fraction();
-    long start=DateTime.Now.Millisecond;;
-    f.Set(.123456);
-    long elapsed = DateTime.Now.Millisecond - start;
-    Console.WriteLine(elapsed);*/
-    SingleTest(1000);
+
+//    Syntax();
+    if(args.Length > 0) {
+      int minTest=-1;
+      int denominator=-1;
+      for(int i=0;i<args.Length;i++) {
+        if(args[i] == "-h" || args[i] == "--help") {
+          Syntax();
+          return;
+        } else if(args[i] == "-s" || args[i] == "--single") {
+          if(i == (args.Length-1)) {
+            Console.WriteLine("Value needs to be supplied for \"{0}\" option. ",args[i]);
+            Syntax();
+            return;
+          }
+          i++;
+          try {
+            denominator=int.Parse(args[i]);
+          } catch(System.FormatException) {
+            Console.WriteLine("Invalid value \"{0}\" for \"{1}\" option. ",args[i],args[i-1]);
+            Syntax();
+            return;
+          }
+        } else if(args[i] == "-r" || args[i] == "--random") {
+          if(i == (args.Length-1)) {
+            Console.WriteLine("Value needs to be supplied for \"{0}\" option. ",args[i]);
+            Syntax();
+            return;
+          }
+          i++;
+          try {
+            minTest=int.Parse(args[i]);
+          } catch(System.FormatException) {
+            Console.WriteLine("Invalid value \"{0}\" for \"{1}\" option. ",args[i],args[i-1]);
+            Syntax();
+            return;
+          }
+        } else {
+          Console.WriteLine("Invalid options specified {0}\n",args[i]);
+          Syntax();
+          return;
+        }
+      }
+      if(denominator > 0)
+        SingleTest(denominator);
+      if(minTest > 0)
+        RandomTest(minTest);
+    } else {
+      SingleTest(1000);
+      RandomTest(1000);
+    }
   }
 }

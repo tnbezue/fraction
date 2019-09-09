@@ -44,7 +44,8 @@ class fraction_t {
           { set(static_cast<int64_t>(numerator_)*static_cast<int64_t>(o.denominator_),
               static_cast<int64_t>(denominator_)*static_cast<int64_t>(o.numerator_)); return *this; }
 
-    fraction_t& round(int denom) { set(numerator_*denom/denominator_,denom); return *this;}
+    fraction_t& round(int denom) { set(static_cast<int64_t>(numerator_)*static_cast<int64_t>(denom)/static_cast<int64_t>(denominator_),
+              static_cast<int64_t>(denom)); return *this;}
     std::string to_s() const;
     std::string to_mixed_s() const;
     static int64_t gcd(int64_t,int64_t);

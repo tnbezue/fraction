@@ -72,7 +72,7 @@ fraction_t& fraction_t::operator=(double d)
 std::string fraction_t::to_s() const
 {
   char str[64];
-  int np=sprintf(str,"&d",numerator_);
+  int np=sprintf(str,"%d",numerator_);
   if(denominator_ != 1)
     sprintf(str+np,"/%d",denominator_);
   return std::string(str);

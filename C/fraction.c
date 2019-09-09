@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdint.h>
 #include <math.h>
 #include "fraction.h"
 
@@ -21,13 +22,34 @@ int64_t fraction_gcd(int64_t a,int64_t b)
 */
 void fraction_set(fraction_t* f,int64_t n,int64_t d)
 {
+  // Negative sign should be in numerator
   if(d<0) {
     d=-d;
     n=-n;
   }
-  int64_t divisor=fraction_gcd(abs(n),d);
-  f->numerator_=n/divisor;
-  f->denominator_=d/divisor;
+
+  // Reduce to lowest fraction
+  int64_t divisor;
+  if((divisor=fraction_gcd(labs(n),d)) != 1) {
+    n/=divisor;
+    d/=divisor;
+  }
+
+  // Result should fit in an integer value
+  int64_t max = labs(n) < d ? d : labs(n);
+  if(max > INT32_MAX) {
+    double scale=(double)max/((double)INT32_MAX);
+    // To ensure below integer max, truncate rather than round
+    n=(int64_t)((double)n/scale);
+    d=(int64_t)((double)d/scale);
+    // May need to be reduced again
+    if((divisor=fraction_gcd(labs(n),d)) != 1) {
+      n/=divisor;
+      d/=divisor;
+    }
+  }
+  f->numerator_=n;
+  f->denominator_=d;
 }
 
 fraction_t fraction_plus_fraction(fraction_t a,fraction_t b)
@@ -81,7 +103,7 @@ fraction_t fraction_from_double(double d)
 {
   fraction_t f;
   int sign = d < 0 ? -1 : 1;
-  int64_t whole = abs(d);
+  int64_t whole = labs(d);
   double fract=fabs(d)-whole;
   int64_t numerator=0;
   int64_t denominator=1; // Round to next whole number if very close to it
@@ -129,7 +151,7 @@ double fraction_to_double(fraction_t f)
 void fraction_round(fraction_t* f,int denom)
 {
   if(f->denominator_ > denom) {
-    fraction_set(f,denom*f->numerator_/f->denominator_,denom);
+    fraction_set(f,(long)round((double)denom*(double)f->numerator_/(double)f->denominator_),denom);
   }
 }
 

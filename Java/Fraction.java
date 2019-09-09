@@ -66,13 +66,33 @@ public final class Fraction extends Number implements Comparable<Fraction> {
 
   public void set(long n,long d)
   {
+    // Negative sign should be in numerator
     if(d<0) {
       n=-n;
       d=-d;
     }
+
+    // Reduce to lowest fraction
     long divisor=Fraction.gcd(Math.abs(n),d);
-    numerator_=(int)(n/divisor);
-    denominator_=(int)(d/divisor);
+    n/=divisor;
+    d/=divisor;
+
+    // Result should fit in an integer value
+    long max = Math.abs(n) < d ? d : Math.abs(n);
+    if(max > (long)Integer.MAX_VALUE) {
+    double scale=(double)max/(double)Integer.MAX_VALUE;
+    // To ensure below integer max, truncate rather than round
+    n=(long)((double)n/scale);
+    d=(long)((double)d/scale);
+
+    // May need to be reduced again
+    if((divisor=gcd(Math.abs(n),d)) != 1) {
+      n/=divisor;
+      d/=divisor;
+    }
+  }
+    numerator_=(int)n;
+    denominator_=(int)d;
   }
 
   public void set(long w,long n,long d)

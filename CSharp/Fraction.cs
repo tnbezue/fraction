@@ -74,16 +74,24 @@ public static long gcd(long a,long b)
     }
 
     // Reduce to lowest fraction
-    long divisor=Fraction.gcd(Math.Abs(n),d);
-    n /= divisor;
-    d /= divisor;
+    long divisor;
+    if((divisor=Fraction.gcd(Math.Abs(n),d)) != 1) {
+      n /= divisor;
+      d /= divisor;
+    }
 
     // Result should fit in an integer value
-    long max=n<d ? d : n;
+    long max=Math.Abs(n)<d ? d : Math.Abs(n);
     if(max > (long)int.MaxValue) {
       double scale=(double)max/((double)int.MaxValue);
       n=(int)((double)n/scale);
       d=(int)((double)d/scale);
+
+      /// May need to be reduced again
+      if((divisor=Fraction.gcd(Math.Abs(n),d)) != 1) {
+        n /= divisor;
+        d /= divisor;
+      }
     }
 
     _numerator=(int)n;

@@ -8,7 +8,7 @@ class TestFraction {
 
   static void TestGCD()
   {
-    int [,] gcd_data = new int [,]{ {0,2,2}, {10,1,1}, {105,15,15}, {10,230,10}, {28,234,2}, {872452914,78241452,6} };
+    int [,] gcd_data = new int [,]{ {0,2,2}, {10,1,1}, {105,15,15}, {10,230,10}, {28,234,2},{872452914,78241452,6} };
     int n = gcd_data.GetUpperBound(0);
     TestHarness.TestCase("Greatest Common Divisor");
     for(int i=0;i<=n;i++) {
@@ -32,7 +32,7 @@ class TestFraction {
     return f.Numerator() == n && f.Denominator() == d;
   }
 
-  static void TestSetInt()
+  static void TestSetLong()
   {
     TestHarness.TestCase("Fraction Set(int)");
     Fraction f = new Fraction();
@@ -45,13 +45,15 @@ class TestFraction {
     }
   }
 
-  static void TestSetIntInt()
+  static void TestSetLongLong()
   {
     TestHarness.TestCase("Fraction Set(int,int)");
     Fraction f = new Fraction();
 
-    int [,] set_data  = new int [,] {
-      { 1,-3,-1,3}, {-1,-3,1,3}, {-6,8,-3,4}, {2,4,1,2},{10,7,10,7}
+    long [,] set_data  = new long [,] {
+      { 1,-3,-1,3}, {-1,-3,1,3}, {-6,8,-3,4}, {2,4,1,2},{10,7,10,7},
+      { 17179869183,68719476736, 536870911,2147483647}, { 68719476736,17179869183,2147483647,536870911 }
+    , { -17179869183,68719476736, -536870911,2147483647}, { -68719476736,17179869183,-2147483647,536870911 }
     };
     int n = set_data.GetUpperBound(0);
     for(int i=0;i<n;i++) {
@@ -61,7 +63,7 @@ class TestFraction {
     }
   }
 
-  static void TestSetIntIntInt()
+  static void TestSetLongLongLong()
   {
     TestHarness.TestCase("Fraction Set(int,int,int)");
     Fraction f = new Fraction();
@@ -274,6 +276,7 @@ class TestFraction {
 
   static void TestParse()
   {
+    TestHarness.TestCase("Fraction.Parse");
     string [] parse_input = new string [] { "-1.25" , "-.25", "0" , "0.25" , "1.25" , "-1 1/4", "-1/4" , "0/1" , "1/4", "1 1/4"};
     int [,] parse_output = new int [,] { {-5,4 }, { -1, 4}, {0,1}, {1,4}, {5,4}, {-5,4 }, { -1, 4}, {0,1}, {1,4}, {5,4}};
     for(int i=0;i<parse_input.Length;i++) {
@@ -282,12 +285,29 @@ class TestFraction {
           parse_output[i,1]),R(f,parse_output[i,0],parse_output[i,1]));
     }
   }
+
+  static void TestRound()
+  {
+    int [,] round_data = new int [,] { {3333,10000,10,3,10}, {3333,10000,100,33,100},
+          {639,5176,100,3,25}, { 2147483647,106197, 1000, 10110849,500}};
+    TestHarness.TestCase("Fraction round");
+    Fraction f=new Fraction();
+
+    int i,n=round_data.GetUpperBound(0);
+    for(i=0;i<n;i++) {
+      S(f,round_data[i,0],round_data[i,1]);
+      f.Round(round_data[i,2]);
+      TestHarness.Test(String.Format("({0}/{1}).Round({2}) = ({3}/{4})",round_data[i,0],round_data[i,1],
+          round_data[i,2],round_data[i,3],round_data[i,4]),R(f,round_data[i,3],round_data[i,4]));
+    }
+  }
+
   static TestHarness.TestMethod [] tests =
   {
     TestGCD,
-    TestSetInt,
-    TestSetIntInt,
-    TestSetIntIntInt,
+    TestSetLong,
+    TestSetLongLong,
+    TestSetLongLongLong,
     TestSetDouble,
     TestAdd,
     TestSubtract,
@@ -299,7 +319,8 @@ class TestFraction {
     TestLessThanEqual,
     TestGreaterThanEqual,
     TestGreaterThanEqual,
-    TestParse
+    TestParse,
+    TestRound,
   };
 
   static void Main(string[] args)

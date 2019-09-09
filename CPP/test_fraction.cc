@@ -9,14 +9,14 @@ void test_init()
 }
 void test_gcd()
 {
-  int gcd_test_data[][3] = { { 0,2,2},{ 10,1,1},{ 105,15,15},{ 10,230,10},{ 28,234,2}, {872452914,78241452,6 },};
+  int gcd_test_data[][3] = { { 0,2,2},{ 10,1,1},{ 105,15,15},{ 10,230,10},{ 28,234,2}, {872452914,78241452,6 }};
   int i,n=ARRAY_SIZE(gcd_test_data);
 
   TESTCASE("Greatest Common Divisor");
   for(i=0;i<n;i++) {
     ostringstream msg;
     msg << "GCD(" << gcd_test_data[i][0] << ',' << gcd_test_data[i][1] << ") = ("
-          << gcd_test_data[i][2] << ',' << gcd_test_data[i][3] << ")" << ends;
+          << gcd_test_data[i][2];
     TEST(msg.str(),fraction_t::gcd(gcd_test_data[i][0],gcd_test_data[i][1])==gcd_test_data[i][2]);
   }
 }
@@ -30,13 +30,15 @@ void test_set()
   fraction_t f;
 
   TESTCASE("Fraction set");
-  int set_test_data[][4]={ { 0,1,0,1 }, {1,1,1,1}, {-2,3,-2,3}, {2,-3,-2,3}, {-2,-3,2,3}};
+  int64_t set_test_data[][4]={ { 0,1,0,1 }, {1,1,1,1}, {-2,3,-2,3}, {2,-3,-2,3}, {-2,-3,2,3} ,
+     { 17179869183,68719476736, 536870911,2147483647}, { 68719476736,17179869183,2147483647,536870911 }
+    , { -17179869183,68719476736, -536870911,2147483647}, { -68719476736,17179869183,-2147483647,536870911 } };
   int i,n = ARRAY_SIZE(set_test_data);
 
   for(i=0;i<n;i++) {
     ostringstream msg;
     msg << "set(" << set_test_data[i][0] << ',' << set_test_data[i][1] << ") = ("
-          << set_test_data[i][2] << ',' << set_test_data[i][3] << ')' << ends;
+          << set_test_data[i][2] << ',' << set_test_data[i][3] << ')';
     S(f,set_test_data[i][0],set_test_data[i][1]);
     TEST(msg.str(),R(f,set_test_data[i][2],set_test_data[i][3]));
   }
@@ -102,8 +104,8 @@ void test_fraction_minus_fraction()
 
 void test_fraction_times_fraction()
 {
-  int mul_data[][6] = { {0,1,0,1,0,1} , {0,1,1,1,0,1},{3,5,-2,9,-1,15},
-          {-2,8,-6,8,3,16}, {7,3,10,7,70,21}, {-5,7,25,35,-25,49}};
+  int mul_data[][6] = { {0,1,0,1,0,1} , {0,1,1,1,0,1},{3,5,-2,9,-2,15},
+          {-2,8,-6,8,3,16}, {7,3,10,7,10,3}, {-5,7,25,35,-25,49}};
   TESTCASE("Multiply Fractions");
   fraction_t f1;
   fraction_t f2;
@@ -268,7 +270,8 @@ void test_fraction_from_double()
 
 void test_round()
 {
-  int round_data[][5] = { {3333,10000,10,3,10}, {3333,10000,100,33,100},{639,5176,100,3,25}};
+  int round_data[][5] = { {3333,10000,10,3,10}, {3333,10000,100,33,100},
+        {639,5176,100,3,25}, { 2147483647,106197, 1000, 10110849,500}};
   TESTCASE("Fraction round");
   fraction_t f;
 

@@ -29,13 +29,34 @@ class Fraction {
     }
 
     void set(long n,long d) {
+      // Negative sign should be in numerator
       if (d < 0) {
         d=-d;
         n=-n;
       }
-      long divisor=gcd(abs(n),d);
-      numerator_=n/divisor;
-      denominator_=d/divisor;
+
+      // Reduce to lowest fraction
+      long divisor;
+      if((divisor=gcd(abs(n),d)) !=1) {
+        n/=divisor;
+        d/=divisor;
+      }
+
+      // Result should fit in an integer value
+      long max = abs(n) < d ? d : abs(n);
+      if(max > cast(long)int.max) {
+        double scale=cast(double)max/(cast(double)int.max);
+        n=cast(long)(cast(double)n/scale);
+        d=cast(long)(cast(double)d/scale);
+        // May need to be reduced again
+        if((divisor=gcd(abs(n),d)) !=1) {
+          n/=divisor;
+          d/=divisor;
+        }
+      }
+
+      numerator_=cast(int)n;
+      denominator_=cast(int)d;
     }
 
     void set(int w,int n,int d) { set(w*d+(w<0?-1:1)*n,d); }
@@ -152,7 +173,7 @@ class Fraction {
 
     void round(int denom)
     {
-      set(cast(long)denom*cast(long)numerator_/cast(long)denominator_,cast(long)denom);
+      set(cast(long)std.math.round(cast(double)denom*cast(double)numerator_/cast(double)denominator_),cast(long)denom);
     }
 
 }

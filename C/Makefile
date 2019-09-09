@@ -14,4 +14,4 @@ test_fraction.o: test_fraction.c fraction.h
 fraction_performance.o: fraction_performance.c fraction.h
 
 clean:
-	rm ${TARGETS} *.o
+	rm -f ${TARGETS} *.o

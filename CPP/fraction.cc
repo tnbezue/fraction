@@ -14,15 +14,42 @@ int64_t fraction_t::gcd(int64_t a,int64_t b)
   return a;
 }
 
+/*
+  Calculations are done with 64 bit integers. However, fraction uses 32 bit integers
+  Reduces numerator and denominator.
+  Assignes to fraction.
+*/
 void fraction_t::set(int64_t n,int64_t d)
 {
+  // Negative sign should be in numerator
   if(d<0) {
     d=-d;
     n=-n;
   }
-  int64_t divisor=gcd(abs(n),d);
-  numerator_=n/divisor;
-  denominator_=d/divisor;
+
+  // Reduce to lowest fraction
+  int64_t divisor;
+  if((divisor=gcd(labs(n),d)) != 1) {
+    n/=divisor;
+    d/=divisor;
+  }
+
+  // Result should fit in an integer value
+  int64_t max = labs(n) < d ? d : labs(n);
+  if(max > INT32_MAX) {
+    double scale=static_cast<double>(max)/static_cast<double>(INT32_MAX);
+    // To ensure below integer max, truncate rather than round
+    n=static_cast<int64_t>(static_cast<double>(n)/scale);
+    d=static_cast<int64_t>(static_cast<double>(d)/scale);
+    // May need to be reduced again
+    if((divisor=gcd(labs(n),d)) != 1) {
+      n/=divisor;
+      d/=divisor;
+    }
+  }
+
+  numerator_=n;
+  denominator_=d;
 }
 
 #ifdef CALCULATE_LOOP_STATISTICS
@@ -32,7 +59,7 @@ int loops;
 fraction_t& fraction_t::operator=(double d)
 {
   int sign = d < 0 ? -1 : 1;
-  int64_t whole = abs(d);
+  int64_t whole = labs(d);
   double fract=fabs(d)-whole;
   int64_t numerator=0;
   int64_t denominator=1;
@@ -66,6 +93,13 @@ fraction_t& fraction_t::operator=(double d)
   }
 
   set(sign*(whole*denominator+numerator),denominator);
+  return *this;
+}
+
+fraction_t& fraction_t::round(int denom)
+{
+  set(static_cast<int64_t>(::round(static_cast<double>(numerator_)*static_cast<double>(denom)
+        /static_cast<double>(denominator_))),static_cast<int64_t>(denom));
   return *this;
 }
 

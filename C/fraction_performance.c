@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include <time.h>
@@ -6,13 +7,80 @@
 #include "fraction.h"
 
 #define TERMINAL_COLUMNS 50     // Columns in terminal -- used for displaying histogram
-#define MAX_DENOMINATORS 1000   // Maximum number of randomly chosen denominators
-#define MAX_TICK_COUNT  50     // Max number of clock ticks for conversion from double to fraction to take
-#define MAX_LOOP_COUNT 10       // Maximum number of loops expected to calculate
 
 #ifdef CALCULATE_LOOP_STATISTICS
   extern int loops;
 #endif
+
+/*
+ * Dynamic array for POD type or structures made of POD types
+ * Assignement done by copy
+*/
+typedef int(*cmp_method)(const void*,const void*);
+typedef struct {
+  char* array;
+  cmp_method cmp_method;
+  unsigned int type_size;
+  unsigned int capacity;
+  unsigned int size;
+} dynamic_array_t;
+
+dynamic_array_t* dynamic_array_newp(dynamic_array_t* this,int ts,cmp_method cmp_method)
+{
+  this->type_size=ts;
+  this->capacity=16;
+  this->size=0;
+  this->array=malloc(this->capacity*this->type_size);
+  this->cmp_method=cmp_method;
+  return this;
+}
+
+void dynamic_array_deletep(dynamic_array_t* this)
+{
+  if(this->array)
+    free(this->array);
+}
+
+#define dynamic_array_begin(da) ((da)->array)
+#define dynamic_array_end(da) ((da)->array + (da)->type_size*(da)->size)
+
+void dynamic_array_increase_capacity(dynamic_array_t* this)
+{
+  this->capacity<<=1;
+  this->array=realloc(this->array,this->capacity*this->type_size);
+}
+
+void* dynamic_array_find(dynamic_array_t* this,void* data)
+{
+  char *i;
+//  char* ptr=this->array;
+  for(i=dynamic_array_begin(this);i!=dynamic_array_end(this);i+=this->type_size)
+    if(this->cmp_method(data,i) == 0)
+      break;
+  return i;
+}
+
+void* dynamic_array_add(dynamic_array_t* this,void* data)
+{
+  char* pos=dynamic_array_find(this,data);
+  if(pos == dynamic_array_end(this)) {
+    if(this->size == this->capacity) {
+      dynamic_array_increase_capacity(this);
+      pos=this->array+this->size*this->type_size;
+    }
+    this->size++;
+    memcpy(pos,data,this->type_size);
+  }
+  return pos;
+}
+
+void dynamic_array_sort(dynamic_array_t* this)
+{
+  qsort(this->array,this->size,this->type_size,this->cmp_method);
+}
+
+#define dynamic_array_size(da) (da->size)
+#define dynamic_array_capacity(da) (da->capacity)
 
 typedef struct {
   double average;
@@ -20,21 +88,72 @@ typedef struct {
   int size;
   int median;
   int mode;
-} stats_t;
+} statistics_t;
 
-stats_t calc_stats(int* freq_data,int n)
+
+typedef struct {
+  int value;
+  int frequency;
+} frequency_t;
+
+int frequency_cmp(const void* freq1,const void* freq2)
 {
-  stats_t s;
+  return ((const frequency_t*)freq1)->value - ((const frequency_t*)freq2)->value;
+}
+
+typedef struct {
+  dynamic_array_t; //* array;
+  int max_freq;
+} frequency_array_t;
+
+frequency_array_t* new_frequency_array()
+{
+  frequency_array_t* fa=malloc(sizeof(frequency_array_t));
+  dynamic_array_newp((dynamic_array_t*)fa,sizeof(frequency_t),frequency_cmp);
+  fa->max_freq=0;
+  return fa;
+}
+
+void delete_frequency_array(frequency_array_t* fa)
+{
+  if(fa) {
+    dynamic_array_deletep((dynamic_array_t*)fa);
+    free(fa);
+  }
+}
+
+#define frequency_array_add(fa,data) dynamic_array_add((dynamic_array_t*)fa,data)
+#define frequency_array_size(fa) dynamic_array_size((dynamic_array_t*)fa)
+#define frequency_array_capacity(fa) dynamic_array_capacity((dynamic_array_t*)fa)
+#define frequency_array_begin(fa) ((frequency_t*)dynamic_array_begin((dynamic_array_t*)fa))
+#define frequency_array_end(fa) ((frequency_t*)dynamic_array_end((dynamic_array_t*)fa))
+
+void frequency_array_increment(frequency_array_t* this,int value)
+{
+//  frequency_t* fa_array=frequency_array_begin(this);
+  frequency_t freq = { value, 0 };
+  frequency_t* pos = frequency_array_add(this,&freq);
+  pos->frequency++;
+  if(pos->frequency > this->max_freq)
+    this->max_freq = pos->frequency;
+}
+
+#define frequency_array_sort(fa) dynamic_array_sort((dynamic_array_t*)fa);
+
+statistics_t frequency_array_statistics(const frequency_array_t* freq_data)
+{
+  statistics_t s;
 
   // Calculate sample size, sum, mode, and average
-  int i,sum=0,max_freq=0;
+  int sum=0,max_freq=0;
   s.size=0;
-  for(i=0;i<n;i++) {
-    s.size+=freq_data[i];
-    sum+=i*freq_data[i];
-    if(freq_data[i] > max_freq) {
-      max_freq = freq_data[i];
-      s.mode=i;
+  const frequency_t* i;
+  for(i=frequency_array_begin(freq_data);i!=frequency_array_end(freq_data);i++) {
+    s.size+=i->frequency;
+    sum+=i->frequency*i->value;
+    if(i->frequency > max_freq) {
+      max_freq = i->frequency;
+      s.mode=i->value;
     }
   }
   s.average=((double)sum)/((double)s.size);
@@ -43,11 +162,11 @@ stats_t calc_stats(int* freq_data,int n)
   double var=0;
   int count=0;
   s.median=-1;
-  for(i=0;i<n;i++) {
-    var+=(i-s.average)*(i-s.average)*freq_data[i];
-    count += freq_data[i];
+  for(i=frequency_array_begin(freq_data);i!=frequency_array_end(freq_data);i++) {
+    var+=(i->value-s.average)*(i->value-s.average)*i->frequency;
+    count += i->frequency;
     if(s.median == -1 && count >= s.size/2) {
-      s.median=i;
+      s.median=i->value;
     }
   }
 
@@ -56,79 +175,88 @@ stats_t calc_stats(int* freq_data,int n)
   return s;
 }
 
-void display_graph(int *freq_data,int n,const char* xlabel,const char* ylabel)
+void frequency_array_display_graph(const frequency_array_t* freq_data,const char* xlabel,const char* ylabel)
 {
   char histogram[TERMINAL_COLUMNS+1];
-  int i,max=0;
-  for(i=0;i<n;i++)
-    if(freq_data[i]>max)
-      max=freq_data[i];
+  const frequency_t* i;
 
   printf("\n%s |           %s\n",xlabel,ylabel);
   printf("-----------------------------------------------------------------\n");
-  double scale=((double)TERMINAL_COLUMNS)/max;
+  double scale=((double)TERMINAL_COLUMNS)/freq_data->max_freq;
   histogram[0]='|';
-  for(i=0;i<n;i++) {
-    int height=round(freq_data[i]*scale);
+  for(i=frequency_array_begin(freq_data);i!=frequency_array_end(freq_data);i++) {
+    int height=round(i->frequency*scale);
     memset(histogram+1,'#',height);
     histogram[height+1]=0;
-    printf(" %2d   %s %d\n",i,histogram,freq_data[i]);
+    printf(" %2d   %s %d\n",i->value,histogram,i->frequency);
   }
   printf("\n");
 }
 
-void do_test(int denominator,int* tick_freq,int *max_ticks,int* loop_freq,int *max_loops)
-{
-  int i;
-  for(i=1;i<denominator;i++) {
-    clock_t start=clock();
-    fraction_from_double(((double)i)/((double)denominator));
-    int ticks=clock()-start;
-    if(ticks < MAX_TICK_COUNT) {
-      tick_freq[ticks]++;
-      if(ticks > *max_ticks)
-        *max_ticks=ticks;
-    } else {
-      printf("Clock ticks %d > expected max of %d -- value ignored\n",ticks,MAX_TICK_COUNT);
-    }
-#ifdef CALCULATE_LOOP_STATISTICS
-    if(loops < MAX_LOOP_COUNT) {
-      loop_freq[loops]++;
-      if(loops > *max_loops)
-        *max_loops=loops;
-    } else {
-      printf("Loops %d > expected max of %d -- value ignored\n",loops,MAX_LOOP_COUNT);
-    }
-#endif
-  }
-}
-
-void show_results(int* tick_freq,int max_ticks,int *loop_freq,int max_loops)
+void frequency_array_show_results(const frequency_array_t* freq_data,const char* xlabel)
 {
 //  fraction_t f;
   char f_str[32];
-  printf("Max time (in clock ticks): %d\n",max_ticks);
-  stats_t stats=calc_stats(tick_freq,max_ticks+1);
+  frequency_t* ptr_max=(frequency_t*)frequency_array_end(freq_data);
+  ptr_max--;
+  printf("Max %s : %d\n",xlabel,ptr_max->value);
+  statistics_t stats=frequency_array_statistics(freq_data);
   printf("Sample size: %d\n",stats.size);
   // Of course this has to be printed as a fraction
-  fraction_as_mixed_fraction_to_s(fraction_from_double(((int)(stats.average*10))/10.0),f_str,32);
+  fraction_t f=fraction_from_double(stats.average);
+  fraction_round(&f,100);
+  fraction_to_mixed_s(f,f_str,32);
   printf("Average: %s\n",f_str);
   printf("Median: %d\n",stats.median);
   printf("Mode: %d\n",stats.mode);
-  fraction_as_mixed_fraction_to_s(fraction_from_double(((int)(stats.standard_deviation*100))/100.0),f_str,32);
+  fraction_set_double(&f,stats.standard_deviation);
+  fraction_round(&f,100);
+  fraction_to_mixed_s(f,f_str,32);
   printf("Standard Deviation: %s\n",f_str);
-  display_graph(tick_freq,max_ticks+1,"Ticks","Frequency");
+  frequency_array_display_graph(freq_data,xlabel,"Frequency");
+}
+
+int diff_in_ms(struct timespec start, struct timespec end)
+{
+  double start_in_ms=1000000000*start.tv_sec+start.tv_nsec;
+  double end_in_ms=1000000000*end.tv_sec+end.tv_nsec;
+  return round((end_in_ms-start_in_ms)/1000.0);
+}
+
+/*
+  Gather stats on fraction from 1/denominator to (denominator-1)/denominator
+*/
+void do_test(int denominator,frequency_array_t* time_freq,frequency_array_t* loop_freq)
+{
+  int i;
+  for(i=0;i<denominator;i++) {
+//    clock_t start=clock();
+    struct timespec start_time,end_time;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start_time);
+    fraction_from_double(((double)i)/((double)denominator));
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end_time);
+//    int tims=clock()-start;
+    if(i>0) {
+      frequency_array_increment(time_freq,diff_in_ms(start_time,end_time));
 #ifdef CALCULATE_LOOP_STATISTICS
-  printf("Max loops: %d\n",max_loops);
-  stats=calc_stats(loop_freq,max_loops+1);
-  printf("Sample size: %d\n",stats.size);
-  fraction_as_mixed_fraction_to_s(fraction_from_double(((int)(stats.average*10))/10.0),f_str,32);
-  printf("Average: %s\n",f_str);
-  printf("Median: %d\n",stats.median);
-  printf("Mode: %d\n",stats.mode);
-  fraction_as_mixed_fraction_to_s(fraction_from_double(((int)(stats.standard_deviation*100))/100.0),f_str,32);
-  printf("Standard Deviation: %s\n",f_str);
-  display_graph(loop_freq,max_loops+1,"Loops","Frequency");
+      frequency_array_increment(loop_freq,loops);
+#endif
+    }
+  }
+}
+
+void simple_test(int denominator)
+{
+  frequency_array_t* time_freq=new_frequency_array();
+  frequency_array_t* loop_freq=new_frequency_array();
+  do_test(denominator,time_freq,loop_freq);
+  frequency_array_sort(time_freq);
+  frequency_array_show_results(time_freq,"t(ms)");
+  delete_frequency_array(time_freq);
+#ifdef CALCULATE_LOOP_STATISTICS
+  frequency_array_sort(loop_freq);
+  frequency_array_show_results(loop_freq,"Loops");
+  delete_frequency_array(loop_freq);
 #else
   printf("\nStatistics for loop count not gathered. To enable loop statistics:\n");
   printf("  make clean\n");
@@ -136,49 +264,68 @@ void show_results(int* tick_freq,int max_ticks,int *loop_freq,int max_loops)
 #endif
 }
 
-/*
-  Gather stats on fraction from 1/denominator to (denominator-1)/denominator
-*/
-void simple_test(int denominator)
+int cmp_int(const void* lhs,const void* rhs)
 {
-  int max_ticks=0,tick_freq[MAX_TICK_COUNT];
-  memset(tick_freq,0,MAX_TICK_COUNT*sizeof(int));
-  int max_loops=0,loop_freq[MAX_LOOP_COUNT];
-  memset(loop_freq,0,MAX_LOOP_COUNT*sizeof(int));
-  do_test(denominator,tick_freq,&max_ticks,loop_freq,&max_loops);
-  show_results(tick_freq,max_ticks,loop_freq,max_loops);
+  return (*(const int*)lhs) - (*(const int*)rhs);
 }
+
+typedef struct {
+  dynamic_array_t;
+} int_array_t;
+
+int_array_t* int_array_new()
+{
+  int_array_t* this=malloc(sizeof(int_array_t));
+  dynamic_array_newp((dynamic_array_t*)this,sizeof(int),cmp_int);
+  return this;
+}
+
+void delete_int_array(int_array_t* this)
+{
+  if(this) {
+    dynamic_array_deletep((dynamic_array_t*)this);
+    free(this);
+  }
+}
+
+#define int_array_find(ia,data) dynamic_array_find((dynamic_array_t*)ia,data)
+#define int_array_add(ia,data) dynamic_array_add((dynamic_array_t*)ia,data)
+#define int_array_size(ia) dynamic_array_size((dynamic_array_t*)ia)
+#define int_array_capacity(ia) dynamic_array_capacity((dynamic_array_t*)ia)
+#define int_array_begin(ia) ((int*)dynamic_array_begin((dynamic_array_t*)ia))
+#define int_array_end(ia) ((int*)dynamic_array_end((dynamic_array_t*)ia))
 
 void random_test(int min_tests)
 {
-  int max_ticks=0,tick_freq[MAX_TICK_COUNT];
-  memset(tick_freq,0,MAX_TICK_COUNT*sizeof(int));
-  int max_loops=0,loop_freq[MAX_LOOP_COUNT];
-  memset(loop_freq,0,MAX_LOOP_COUNT*sizeof(int));
   srand(time(NULL));
-  int *denominators=malloc(MAX_DENOMINATORS*sizeof(int));
-  int n_tests=0,n_denominators=0;
-  while(n_tests < min_tests && n_denominators < MAX_DENOMINATORS) {
+  int_array_t *denominators=int_array_new();
+  int n_tests=0;
+  while(n_tests < min_tests) {
     int denominator=rand() % min_tests + 100;
-    // make sure it's unique
-    int i,found=0;
-    for(i=0;i<n_denominators;i++) {
-      if(denominators[i]==denominator) {
-        found=1;
-        break;
-      }
-    }
-    if(!found) {
-      denominators[n_denominators++]=denominator;
+    if(int_array_find(denominators,&denominator) == int_array_end(denominators)) {
+      int_array_add(denominators,&denominator);
       n_tests+=denominator-1;
     }
   }
-  int i;
-  for(i=0;i<n_denominators;i++) {
-    do_test(denominators[i],tick_freq,&max_ticks,loop_freq,&max_loops);
+  int* i;
+  frequency_array_t* time_freq=new_frequency_array();
+  frequency_array_t* loop_freq=new_frequency_array();
+  for(i=int_array_begin(denominators);i!=int_array_end(denominators);i++) {
+    do_test(*i,time_freq,loop_freq);
   }
-  show_results(tick_freq,max_ticks,loop_freq,max_loops);
-  free(denominators);
+  delete_int_array(denominators);
+  frequency_array_sort(time_freq);
+  frequency_array_show_results(time_freq,"t(ms)");
+  delete_frequency_array(time_freq);
+#ifdef CALCULATE_LOOP_STATISTICS
+  frequency_array_sort(loop_freq);
+  frequency_array_show_results(loop_freq,"Loops");
+  delete_frequency_array(loop_freq);
+#else
+  printf("\nStatistics for loop count not gathered. To enable loop statistics:\n");
+  printf("  make clean\n");
+  printf("  CFLAGS=-DCALCULATE_LOOP_STATISTICS make\n");
+#endif
 }
 
 void syntax(const char* pgm)

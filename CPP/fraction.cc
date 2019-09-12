@@ -39,8 +39,8 @@ void fraction_t::set(int64_t n,int64_t d)
   if(max > INT32_MAX) {
     double scale=static_cast<double>(max)/static_cast<double>(INT32_MAX);
     // To ensure below integer max, truncate rather than round
-    n=static_cast<int64_t>(static_cast<double>(n)/scale);
-    d=static_cast<int64_t>(static_cast<double>(d)/scale);
+    n=static_cast<int64_t>(::round(static_cast<double>(n)/scale));
+    d=static_cast<int64_t>(::round(static_cast<double>(d)/scale));
     // May need to be reduced again
     if((divisor=gcd(labs(n),d)) != 1) {
       n/=divisor;
@@ -69,9 +69,9 @@ fraction_t& fraction_t::operator=(double d)
   if(fract > fraction_t::epsilon) {
     // Starting approximation is 1 for numerator and 1/fract for denominator
     // For example, if converting 0.06 to fraction, 1/0.06 = 16.666666667
-    // So starting fraction is 1/16
+    // So starting fraction is 1/17
     numerator=1;
-    denominator=1/fract+fraction_t::epsilon; // Round to next whole number if very close to it
+    denominator=::round(1/fract);
     while(1) {
       // End if it's close enough to fract
       double value=(double)numerator/(double)denominator;
@@ -86,7 +86,7 @@ fraction_t& fraction_t::operator=(double d)
       // (numerator = 1 and denominator = 1/diff) and add to current fraction.
       // numerator/denominator + 1/dd = (numerator*dd + denominator)/(denominator*dd)
       int64_t dd;
-      dd=fabs(1.0/diff)+fraction_t::epsilon; // Round to next whole number if very close to it.
+      dd=::round(fabs(1.0/diff));
       numerator=numerator*dd+(diff < 0 ? 1 : -1)*denominator;
       denominator*=dd;
     }
@@ -98,8 +98,9 @@ fraction_t& fraction_t::operator=(double d)
 
 fraction_t& fraction_t::round(int denom)
 {
-  set(static_cast<int64_t>(::round(static_cast<double>(numerator_)*static_cast<double>(denom)
-        /static_cast<double>(denominator_))),static_cast<int64_t>(denom));
+  if(denominator_ > denom)
+    set(static_cast<int64_t>(::round(static_cast<double>(numerator_)*static_cast<double>(denom)
+          /static_cast<double>(denominator_))),static_cast<int64_t>(denom));
   return *this;
 }
 

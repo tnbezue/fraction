@@ -10,161 +10,182 @@ using namespace std;
 #include "fraction.hh"
 
 #define TERMINAL_COLUMNS 50     // Columns in terminal -- used for displaying histogram
-#define MAX_DENOMINATORS 1000   // Maximum number of randomly chosen denominators
-#define MAX_TICK_COUNT  50     // Max number of clock ticks for conversion from double to fraction to take
-#define MAX_LOOP_COUNT 10       // Maximum number of loops expected to calculate
 
 #ifdef CALCULATE_LOOP_STATISTICS
   extern int loops;
 #endif
 
-class freq_t : public vector<int>
+struct statistics_t
 {
-  public:
-    int& operator[](int i);
-    const int& operator[](int i) const { return vector<int>::operator[](i); }
+  double average_;
+  double standard_deviation_;
+  int size_;
+  int median_;
+  int mode_;
+
+  fraction_t average() const { fraction_t f(average_); f.round(100); return f; }
+  fraction_t standard_deviation() const { fraction_t f(standard_deviation_); f.round(100); return f; }
+  size_t size() const { return size_; }
+  int median() const { return median_; }
+  int mode() const { return mode_; }
 };
 
-int& freq_t::operator[](int i)
+struct frequency_t
 {
-  while(i>=size()) {
-    push_back(0);
-  }
-  return vector<int>::operator[](i);
+  int value;
+  int frequency;
+  frequency_t() : value{0}, frequency(0) { }
+  frequency_t(int v) : value(v),frequency(1) { }
+};
+
+bool operator<(const frequency_t& lhs,const frequency_t& rhs)
+{
+  return lhs.value < rhs.value;
 }
 
-class stats_t {
-  protected:
-    double average_;
-    double standard_deviation_;
-    int size_;
-    int median_;
-    int mode_;
+bool operator==(const frequency_t& lhs,const frequency_t& rhs)
+{
+  return lhs.value == rhs.value;
+}
+
+class frequency_array_t : public vector<frequency_t>
+{
+    int max_freq_;
   public:
-    stats_t() : average_(0),standard_deviation_(0),size_(0),median_(0),mode_(0) { }
-    void calc(const freq_t&);
-    fraction_t average() const { return fraction_t(((int)(average_*10))/10.0); }
-    fraction_t standard_deviation() const { return fraction_t(((int)(standard_deviation_*100))/100.0); }
-    int size() const { return size_; }
-    int median() const { return median_; }
-    int mode() const { return mode_; }
+    frequency_array_t() : vector<frequency_t>(), max_freq_(0) { }
+    void sort() { std::sort(this->begin(),this->end()); }
+    void increment(int value);
+    void display_graph(const string&,const string&) const;
+    void show_results(const string&) const;
+    statistics_t statistics() const;
 };
 
-void stats_t::calc(const freq_t& freq_data)
+void frequency_array_t::increment(int value)
 {
-  stats_t s;
+  frequency_array_t::iterator i=find(this->begin(),this->end(),frequency_t(value));
+  if(i == cend()) {
+    frequency_t f(value);
+    push_back(f);
+  } else {
+    i->frequency++;
+    if(i->frequency > max_freq_)
+      max_freq_=i->frequency;
+  }
+}
+
+statistics_t frequency_array_t::statistics() const
+{
+  statistics_t s;
 
   // Calculate sample size, sum, mode, and average
-  int i,sum=0,max_freq=0;
-  size_=0;
-  for(i=0;i<freq_data.size();i++) {
-    size_+=freq_data[i];
-    sum+=i*freq_data[i];
-    if(freq_data[i] > max_freq) {
-      max_freq = freq_data[i];
-      mode_=i;
+  int sum=0;
+  s.size_=0;
+  const_iterator i;
+  for(i=cbegin();i<cend();i++) {
+    s.size_+=i->frequency;
+    sum+=i->value*i->frequency;
+    if(i->frequency == max_freq_) {
+      s.mode_=i->value;
     }
   }
-  average_=((double)sum)/((double)size_);
+  s.average_=((double)sum)/((double)s.size_);
 
   // Get median and variance
   double var=0;
   int count=0;
-  median_=-1;
-  for(i=0;i<freq_data.size();i++) {
-    var+=(i-average_)*(i-average_)*freq_data[i];
-    count += freq_data[i];
-    if(median_ == -1 && count >= size_/2) {
-      median_=i;
+  s.median_=-1;
+  for(i=cbegin();i!=cend();i++) {
+    var+=(i->value-s.average_)*(i->value-s.average_)*i->frequency;
+    count += i->frequency;
+    if(s.median_ == -1 && count >= s.size_/2) {
+      s.median_=i->value;
     }
   }
 
   // standard deviation
-  standard_deviation_=sqrt(var/(size_-1));
+  s.standard_deviation_=sqrt(var/(s.size_-1));
+  return s;
 }
 
-void display_graph(const freq_t &freq_data,const string& xlabel,const string& ylabel)
+void frequency_array_t::display_graph(const string& xlabel,const string& ylabel) const
 {
   string histogram;
-  int i,max=0;
-  for(i=0;i<freq_data.size();i++)
-    if(freq_data[i]>max)
-      max=freq_data[i];
-
   cout << endl << xlabel << "|           " << ylabel<<endl;
   cout << "-----------------------------------------------------------------\n";
-  double scale=((double)TERMINAL_COLUMNS)/max;
-  for(i=0;i<freq_data.size();i++) {
+  double scale=((double)TERMINAL_COLUMNS)/max_freq_;
+  const_iterator i;
+  for(i=cbegin();i<cend();i++) {
     histogram.clear();
-    int height=round(freq_data[i]*scale);
+    int height=round(i->frequency*scale);
     histogram.append(height,'#');
-    cout << setw(3) << i << "  |" << histogram << " " << freq_data[i] << endl;
+    cout << setw(3) << i->value << "  |" << histogram << " " << i->frequency << endl;
   }
   cout << endl;
 }
 
-void show_results(const freq_t& tick_freq,const freq_t& loop_freq)
+void frequency_array_t::show_results(const string& xlabel) const
 {
 //  fraction_t f;
-  cout << "Max time (in clock ticks): " << tick_freq.size()-1 << endl;
-  stats_t stats;
-  stats.calc(tick_freq);
+  cout << "Max " << xlabel << ": " << (*this)[size()-1].value << endl;
+  statistics_t stats=statistics();
+//  stats.calc(time_freq);
   cout << "Sample size: " << stats.size() << endl;
   cout << "Average: " << stats.average().to_mixed_s() << endl;
   cout << "Median: " << stats.median() << endl;
   cout << "Mode: " << stats.mode() << endl;
   cout << "Standard Deviation: " << stats.standard_deviation().to_mixed_s() << endl;
-  display_graph(tick_freq,"Ticks","Frequency");
-#ifdef CALCULATE_LOOP_STATISTICS
-  cout << "Max loops: " << loop_freq.size()-1 << endl;
-  stats.calc(loop_freq);
-  cout << "Sample size: " << stats.size() << endl;
-  cout << "Average: " << stats.average().to_mixed_s() << endl;
-  cout << "Median: " << stats.median() << endl;
-  cout << "Mode: " << stats.mode() << endl;
-  cout << "Standard Deviation: " << stats.standard_deviation().to_mixed_s() << endl;
-  display_graph(loop_freq,"Ticks","Frequency");
-#else
-  printf("\nStatistics for loop count not gathered. To enable loop statistics:\n");
-  printf("  make clean\n");
-  printf("  CXXFLAGS=-DCALCULATE_LOOP_STATISTICS make\n");
-#endif
+  display_graph(xlabel,"Frequency");
 }
 
-void do_test(int denominator,freq_t& tick_freq,freq_t& loop_freq)
+#define diff_in_ms(start,end) \
+  (((1000000000*end.tv_sec+end.tv_nsec) - (1000000000*start.tv_sec+start.tv_nsec))/1000)
+
+void do_test(int denominator,frequency_array_t& time_freq,frequency_array_t& loop_freq)
 {
   int i;
-  for(i=1;i<denominator;i++) {
-    clock_t start=clock();
+  for(i=0;i<denominator;i++) {
+    struct timespec start_time,end_time;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start_time);
     fraction_t(((double)i)/((double)denominator));
-    int ticks=clock()-start;
-    tick_freq[ticks]++;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end_time);
+    if(i>0) {
+      time_freq.increment(diff_in_ms(start_time,end_time));
 #ifdef CALCULATE_LOOP_STATISTICS
-    loop_freq[loops]++;
+      loop_freq.increment(loops);
 #endif
+    }
   }
 }
 
 /*
   Gather stats on fraction from 1/denominator to (denominator-1)/denominator
 */
-void simple_test(int denominator)
+void single_test(int denominator)
 {
-  freq_t tick_freq;
-  freq_t loop_freq;
-  do_test(denominator,tick_freq,loop_freq);
-  show_results(tick_freq,loop_freq);
+  frequency_array_t time_freq;
+  frequency_array_t loop_freq;
+  do_test(denominator,time_freq,loop_freq);
+  time_freq.sort();
+  time_freq.show_results("t(ms)");
+#ifdef CALCULATE_LOOP_STATISTICS
+  loop_freq.sort();
+  loop_freq.show_results("Loops");
+#else
+  cout << "\nStatistics for loop count not gathered. To enable loop statistics:\n";
+  cout << "  make clean\n";
+  cout << "  CXXFLAGS=-DCALCULATE_LOOP_STATISTICS make\n";
+#endif
 }
 
 void random_test(int min_tests)
 {
-  freq_t tick_freq;
-  freq_t loop_freq;
+  frequency_array_t time_freq;
+  frequency_array_t loop_freq;
 
   srand(time(NULL));
   vector<int> denominators;
   int n_tests=0;
-  while(n_tests < min_tests && denominators.size() < MAX_DENOMINATORS) {
+  while(n_tests < min_tests) {
     int denominator=rand() % min_tests + 100;
     // make sure it's unique
     if(find(denominators.cbegin(),denominators.cend(),denominator) == denominators.cend()) {
@@ -174,9 +195,18 @@ void random_test(int min_tests)
   }
   vector<int>::const_iterator i;
   for(i=denominators.cbegin();i!=denominators.cend();i++) {
-    do_test(*i,tick_freq,loop_freq);
+    do_test(*i,time_freq,loop_freq);
   }
-  show_results(tick_freq,loop_freq);
+  time_freq.sort();
+  time_freq.show_results("t(ms)");
+#ifdef CALCULATE_LOOP_STATISTICS
+  loop_freq.sort();
+  loop_freq.show_results("Loops");
+#else
+  cout << "\nStatistics for loop count not gathered. To enable loop statistics:\n";
+  cout << "  make clean\n";
+  cout << "  CXXFLAGS=-DCALCULATE_LOOP_STATISTICS make\n";
+#endif
 }
 
 void syntax(const string& pgm)
@@ -233,11 +263,11 @@ int main(int argc,char* argv[])
       }
     }
     if(denominator > 0)
-      simple_test(denominator);
+      single_test(denominator);
     if(min_tests>0)
       random_test(min_tests);
   } else {
-    simple_test(1000);
+    single_test(1000);
     random_test(1000);
   }
   return 0;

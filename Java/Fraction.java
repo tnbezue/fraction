@@ -2,6 +2,7 @@ import java.util.regex.Pattern;  // Used in parseFraction
 import java.util.regex.Matcher;  // Used in parseFraction
 
 public final class Fraction extends Number implements Comparable<Fraction> {
+  private static final boolean calculate_loop_statistics = true;
   private int numerator_;
   private int denominator_;
 
@@ -82,8 +83,8 @@ public final class Fraction extends Number implements Comparable<Fraction> {
     if(max > (long)Integer.MAX_VALUE) {
     double scale=(double)max/(double)Integer.MAX_VALUE;
     // To ensure below integer max, truncate rather than round
-    n=(long)((double)n/scale);
-    d=(long)((double)d/scale);
+    n=(long)Math.round((double)n/scale);
+    d=(long)Math.round((double)d/scale);
 
     // May need to be reduced again
     if((divisor=gcd(Math.abs(n),d)) != 1) {
@@ -100,6 +101,7 @@ public final class Fraction extends Number implements Comparable<Fraction> {
     set(w*d+(w<0 ? -1 : 1)*n,d);
   }
 
+  public static int loops;
   public void set(double d)
   {
     long sign = d<0 ? -1 : 1;
@@ -107,24 +109,28 @@ public final class Fraction extends Number implements Comparable<Fraction> {
     double fract=Math.abs(d)-whole;
     long numerator=0;
     long denominator=1; // Round to next whole number if very close to it
+    if(calculate_loop_statistics)
+      loops=0;
     if(fract > Fraction.epsilon) {
       // Starting approximation is 1 for numerator and 1/fract for denominator
       // For example, if converting 0.06 to fraction, 1/0.06 = 16.666666667
-      // So starting fraction is 1/16
+      // So starting fraction is 1/17
       numerator=1;
-      denominator=(long)(1.0/fract+Fraction.epsilon); // Round to next whole number if very close to it
+      denominator=(long)Math.round(1.0/fract);
       while(true) {
         // End if it's close enough to fract
         double value=(double)numerator/(double)denominator;
         double diff=value-fract;
         if(Math.abs(diff) < Fraction.epsilon)
           break;
+        if(calculate_loop_statistics)
+          loops++;
         // The desired fraction is current fraction (numerator/denominator) +/- the difference
         // Convert difference to fraction in the same manner as starting approximation
         // (numerator = 1 and denominator = 1/diff) and add to current fraction.
         // numerator/denominator + 1/dd = (numerator*dd + denominator)/(denominator*dd)
         long dd;
-        dd=(long)(Math.abs(1.0/diff)+Fraction.epsilon); // Round to next whole number if very close to it.
+        dd=(long)Math.round(Math.abs(1.0/diff));
         numerator=numerator*dd+(diff < 0 ? 1 : -1)*denominator;
         denominator*=dd;
       }
@@ -192,7 +198,8 @@ public final class Fraction extends Number implements Comparable<Fraction> {
 
   public void Round(int denom)
   {
-    set((long)Math.round((double)denom*(double)numerator_/(double)denominator_),(long)denom);
+    if(denom < denominator_)
+      set((long)Math.round((double)denom*(double)numerator_/(double)denominator_),(long)denom);
   }
 
   public double doubleValue()
@@ -239,7 +246,7 @@ public final class Fraction extends Number implements Comparable<Fraction> {
     return s;
   }
 
-  public String toStringMixed()
+  public String toMixedString()
   {
     String s=new String();
     int whole=numerator_/denominator_;
@@ -247,7 +254,7 @@ public final class Fraction extends Number implements Comparable<Fraction> {
       return toString();
     int num=numerator_-whole*denominator_;
     s=s+whole;
-    if(numerator_ != 0)
+    if(num != 0)
       s=s+" "+num+"/"+denominator_;
     return s;
   }

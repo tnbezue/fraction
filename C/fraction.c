@@ -39,9 +39,8 @@ void fraction_set(fraction_t* f,int64_t n,int64_t d)
   int64_t max = labs(n) < d ? d : labs(n);
   if(max > INT32_MAX) {
     double scale=(double)max/((double)INT32_MAX);
-    // To ensure below integer max, truncate rather than round
-    n=(int64_t)((double)n/scale);
-    d=(int64_t)((double)d/scale);
+    n=(int64_t)round(((double)n/scale));
+    d=(int64_t)round(((double)d/scale));
     // May need to be reduced again
     if((divisor=fraction_gcd(labs(n),d)) != 1) {
       n/=divisor;
@@ -93,6 +92,13 @@ int fraction_cmp(fraction_t lhs,fraction_t rhs)
   return ((int64_t)lhs.numerator_)*((int64_t)rhs.denominator_) - ((int64_t)rhs.numerator_)*((int64_t)lhs.denominator_);
 }
 
+fraction_t fraction_abs(fraction_t f)
+{
+  fraction_t f_abs;
+  fraction_set(&f_abs,abs(f.numerator_),f.denominator_);
+  return f_abs;
+}
+
 double fraction_epsilon=5e-6;
 
 #ifdef CALCULATE_LOOP_STATISTICS
@@ -102,6 +108,12 @@ int loops;
 fraction_t fraction_from_double(double d)
 {
   fraction_t f;
+  fraction_set_double(&f,d);
+  return f;
+}
+
+void fraction_set_double(fraction_t* f,double d)
+{
   int sign = d < 0 ? -1 : 1;
   int64_t whole = labs(d);
   double fract=fabs(d)-whole;
@@ -113,9 +125,9 @@ fraction_t fraction_from_double(double d)
   if(fract > fraction_epsilon) {
     // Starting approximation is 1 for numerator and 1/fract for denominator
     // For example, if converting 0.06 to fraction, 1/0.06 = 16.666666667
-    // So starting fraction is 1/16
+    // So starting fraction is 1/17
     numerator=1;
-    denominator=1/fract+fraction_epsilon; // Round to next whole number if very close to it
+    denominator=round(1/fract); // Round to next whole number if very close to it
     while(1) {
       // End if it's close enough to fract
       double value=(double)numerator/(double)denominator;
@@ -130,15 +142,14 @@ fraction_t fraction_from_double(double d)
       // (numerator = 1 and denominator = 1/diff) and add to current fraction.
       // numerator/denominator + 1/dd = (numerator*dd + denominator)/(denominator*dd)
       int64_t dd;
-      dd=fabs(1.0/diff)+fraction_epsilon; // Round to next whole number if very close to it.
+      dd=round(fabs(1.0/diff)); // Round to next whole number if very close to it.
       numerator=numerator*dd+(diff < 0 ? 1 : -1)*denominator;
       denominator*=dd;
     }
   }
   // Reduce fraction by dividing numerator and denominator by greatest common divisor
-  fraction_set(&f,sign*(whole*denominator+numerator),denominator);
+  fraction_set(f,sign*(whole*denominator+numerator),denominator);
 
-  return f;
 }
 
 double fraction_to_double(fraction_t f)
@@ -164,7 +175,7 @@ void fraction_to_s(fraction_t f,char* str,int n)
 }
 
 // String shou
-void fraction_as_mixed_fraction_to_s(fraction_t f,char* str,int n)
+void fraction_to_mixed_s(fraction_t f,char* str,int n)
 {
   int whole=f.numerator_/f.denominator_;
   if(whole != 0) {

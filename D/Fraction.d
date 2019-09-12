@@ -46,8 +46,8 @@ class Fraction {
       long max = abs(n) < d ? d : abs(n);
       if(max > cast(long)int.max) {
         double scale=cast(double)max/(cast(double)int.max);
-        n=cast(long)(cast(double)n/scale);
-        d=cast(long)(cast(double)d/scale);
+        n=cast(long)std.math.round(cast(double)n/scale);
+        d=cast(long)std.math.round(cast(double)d/scale);
         // May need to be reduced again
         if((divisor=gcd(abs(n),d)) !=1) {
           n/=divisor;
@@ -80,9 +80,9 @@ class Fraction {
       if(fract > Fraction.epsilon) {
         // Starting approximation is 1 for numerator and 1/fract for denominator
         // For example, if converting 0.06 to fraction, 1/0.06 = 16.666666667
-        // So starting fraction is 1/16
+        // So starting fraction is 1/17
         numerator=1;
-        denominator=cast(long)(1.0/fract+Fraction.epsilon); // Round to next whole number if very close to it
+        denominator=cast(long)std.math.round(1.0/fract);
         while(1) {
           // End if it's close enough to fract
           double value=cast(double)numerator/cast(double)denominator;
@@ -97,7 +97,7 @@ class Fraction {
           // (numerator = 1 and denominator = 1/diff) and add to current fraction.
           // numerator/denominator + 1/dd = (numerator*dd + denominator)/(denominator*dd)
           long dd;
-          dd=cast(long)(fabs(1.0/diff)+Fraction.epsilon); // Round to next whole number if very close to it.
+          dd=cast(long)std.math.round(fabs(1.0/diff));
           numerator=numerator*dd+(diff < 0 ? 1 : -1)*denominator;
           denominator*=dd;
         }

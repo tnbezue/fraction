@@ -52,11 +52,11 @@ class TestFraction {
 
     long [,] set_data  = new long [,] {
       { 1,-3,-1,3}, {-1,-3,1,3}, {-6,8,-3,4}, {2,4,1,2},{10,7,10,7},
-      { 17179869183,68719476736, 536870911,2147483647}, { 68719476736,17179869183,2147483647,536870911 }
-    , { -17179869183,68719476736, -536870911,2147483647}, { -68719476736,17179869183,-2147483647,536870911 }
+      { 17179869183,68719476736, 536870912,2147483647}, { 68719476736,17179869183,2147483647,536870912 }
+    , { -17179869183,68719476736, -536870912,2147483647}, { -68719476736,17179869183,-2147483647,536870912 }
     };
     int n = set_data.GetUpperBound(0);
-    for(int i=0;i<n;i++) {
+    for(int i=0;i<=n;i++) {
       S(f,set_data[i,0],set_data[i,1]);
       TestHarness.Test(String.Format("Set({0},{1}) = ({2},{3})",set_data[i,0],set_data[i,1],set_data[i,2],set_data[i,3]),
           R(f,set_data[i,2],set_data[i,3]));
@@ -72,7 +72,7 @@ class TestFraction {
       { -10,2,3,-32,3}, { 0, -2, 3, -2,3}, { 0,0,1,0,1}, {0,2,3,2,3}, {10,2,3,32,3}
     };
     int n = set_data.GetUpperBound(0);
-    for(int i=0;i<n;i++) {
+    for(int i=0;i<=n;i++) {
       S(f,set_data[i,0],set_data[i,1],set_data[i,2]);
       TestHarness.Test(String.Format("Set({0},{1},{2}) = ({3},{4})",set_data[i,0],set_data[i,1],
           set_data[i,2],set_data[i,3],set_data[i,4]),R(f,set_data[i,3],set_data[i,4]));
@@ -102,7 +102,7 @@ class TestFraction {
           {7,3,10,7,79,21}, {-5,7,25,35,0,1}};
     int n = plus_data.GetUpperBound(0);
     TestHarness.TestCase("Fraction addition");
-    for(int i=0;i<n;i++) {
+    for(int i=0;i<=n;i++) {
       S(f1,plus_data[i,0],plus_data[i,1]);
       S(f2,plus_data[i,2],plus_data[i,3]);
       f3 = f1 + f2;
@@ -122,7 +122,7 @@ class TestFraction {
           {7,3,10,7,19,21}, {-5,7,25,35,-10,7}};
     int n = minus_data.GetUpperBound(0);
     TestHarness.TestCase("Fraction subtraction");
-    for(int i=0;i<n;i++) {
+    for(int i=0;i<=n;i++) {
       S(f1,minus_data[i,0],minus_data[i,1]);
       S(f2,minus_data[i,2],minus_data[i,3]);
       f3 = f1 - f2;
@@ -142,7 +142,7 @@ class TestFraction {
           {7,3,10,7,10,3}, {-5,7,25,35,-25,49}};
     int n = mul_data.GetUpperBound(0);
     TestHarness.TestCase("Fraction multiplication");
-    for(int i=0;i<n;i++) {
+    for(int i=0;i<=n;i++) {
       S(f1,mul_data[i,0],mul_data[i,1]);
       S(f2,mul_data[i,2],mul_data[i,3]);
       f3 = f1 * f2;
@@ -162,7 +162,7 @@ class TestFraction {
           {7,3,10,7,49,30}, {-5,7,25,35,-1,1}};
     int n = div_data.GetUpperBound(0);
     TestHarness.TestCase("Fraction division");
-    for(int i=0;i<n;i++) {
+    for(int i=0;i<=n;i++) {
       S(f1,div_data[i,0],div_data[i,1]);
       S(f2,div_data[i,2],div_data[i,3]);
       f3 = f1 / f2;
@@ -181,7 +181,7 @@ class TestFraction {
     int [,] eq_data = new int [,] { { 0,1,0,1,1}, {0,1,1,2,0}, {2,3,-2,4,0}, {2,3,16,24,1}, {1,3,1,3,1}, {-5,7,25,35,0}};
     int i;
     int n=eq_data.GetUpperBound(0);
-    for(i=0;i<n;i++) {
+    for(i=0;i<=n;i++) {
       f1.Set(eq_data[i,0],eq_data[i,1]);
       f2.Set(eq_data[i,2],eq_data[i,3]);
       TestHarness.Test(String.Format("({0}/{1}) == ({2}/{3}) -- {4}",eq_data[i,0],eq_data[i,1],eq_data[i,2],
@@ -198,7 +198,7 @@ class TestFraction {
     int [,] ne_data= new int [,] { { 0,1,0,1,0}, {0,1,1,2,1}, {2,3,-2,4,1}, {2,3,16,24,0}, {1,3,1,3,0}, {-5,7,25,35,1}};
     int i;
     int n=ne_data.GetUpperBound(0);
-    for(i=0;i<n;i++) {
+    for(i=0;i<=n;i++) {
       f1.Set(ne_data[i,0],ne_data[i,1]);
       f2.Set(ne_data[i,2],ne_data[i,3]);
       TestHarness.Test(String.Format("({0}/{1}) != ({2}/{3}) -- {4}",ne_data[i,0],ne_data[i,1],ne_data[i,2],
@@ -215,7 +215,7 @@ class TestFraction {
     int [,] lt_data = new int [,] { { 0,1,0,1,0}, {0,1,1,2,1}, {2,3,-2,4,0}, {2,3,16,24,0}, {1,3,1,3,0}, {-5,7,25,35,1}};
     int n=lt_data.GetUpperBound(0);
     int i;
-    for(i=0;i<n;i++) {
+    for(i=0;i<=n;i++) {
       f1.Set(lt_data[i,0],lt_data[i,1]);
       f2.Set(lt_data[i,2],lt_data[i,3]);
       TestHarness.Test(String.Format("({0}/{1}) != ({2}/{3}) -- {4}",lt_data[i,0],lt_data[i,1],lt_data[i,2],
@@ -232,7 +232,7 @@ class TestFraction {
     int [,] le_data = new int [,] { { 0,1,0,1,1}, {0,1,1,2,1}, {2,3,-2,4,0}, {2,3,16,24,1}, {1,3,1,3,1}, {-5,7,25,35,1}};
     int n=le_data.GetUpperBound(0);
     int i;
-    for(i=0;i<n;i++) {
+    for(i=0;i<=n;i++) {
       f1.Set(le_data[i,0],le_data[i,1]);
       f2.Set(le_data[i,2],le_data[i,3]);
       TestHarness.Test(String.Format("({0}/{1}) != ({2}/{3}) -- {4}",le_data[i,0],le_data[i,1],le_data[i,2],
@@ -249,7 +249,7 @@ class TestFraction {
     int [,] gt_data = new int [,] { { 0,1,0,1,0}, {0,1,1,2,0}, {2,3,-2,4,1}, {2,3,16,24,0}, {1,3,1,3,0}, {-5,7,25,35,0}};
     int i;
     int n=gt_data.GetUpperBound(0);
-    for(i=0;i<n;i++) {
+    for(i=0;i<=n;i++) {
       f1.Set(gt_data[i,0],gt_data[i,1]);
       f2.Set(gt_data[i,2],gt_data[i,3]);
       TestHarness.Test(String.Format("({0}/{1}) != ({2}/{3}) -- {4}",gt_data[i,0],gt_data[i,1],gt_data[i,2],
@@ -266,7 +266,7 @@ class TestFraction {
     int [,] ge_data = new int [,] { { 0,1,0,1,1}, {0,1,1,2,0}, {2,3,-2,4,1}, {2,3,16,24,1}, {1,3,1,3,1}, {-5,7,25,35,0}};
     int n=ge_data.GetUpperBound(0);
     int i;
-    for(i=0;i<n;i++) {
+    for(i=0;i<=n;i++) {
       f1.Set(ge_data[i,0],ge_data[i,1]);
       f2.Set(ge_data[i,2],ge_data[i,3]);
       TestHarness.Test(String.Format("({0}/{1}) != ({2}/{3}) -- {4}",ge_data[i,0],ge_data[i,1],ge_data[i,2],
@@ -294,7 +294,7 @@ class TestFraction {
     Fraction f=new Fraction();
 
     int i,n=round_data.GetUpperBound(0);
-    for(i=0;i<n;i++) {
+    for(i=0;i<=n;i++) {
       S(f,round_data[i,0],round_data[i,1]);
       f.Round(round_data[i,2]);
       TestHarness.Test(String.Format("({0}/{1}).Round({2}) = ({3}/{4})",round_data[i,0],round_data[i,1],

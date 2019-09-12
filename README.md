@@ -30,8 +30,8 @@ Repeat steps 2 to 4 until solution found.
 Some features of this method are:
 * If the result is a fraction 1/anything, the first approximation will be exact. For example,
 converting 0.25 to fraction, the first approximation will be 1/4. Thus further iterations are not needed.
-* In majority (> 70%) of 1,000,000 test cases, convergance occures in 3 iteration or less.
-* For all test cases, the maximum number of interations was 5.
+* In majority (> 80%) of 1,000,000 test cases, convergance occures in 2 iteration or less.
+* For all test cases, the maximum number of interations was 3.
 
 ## Testing and Performance
 

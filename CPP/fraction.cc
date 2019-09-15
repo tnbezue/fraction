@@ -121,7 +121,7 @@ std::string fraction_t::to_mixed_s() const
     int np=sprintf(str,"%d",whole);
     int numerator=numerator_-whole*denominator_;
     if(numerator != 0) {
-      numerator=abs(numerator);
+      numerator=::abs(numerator);
       sprintf(str+np," %d/%d",numerator,denominator_);
     }
     return std::string(str);

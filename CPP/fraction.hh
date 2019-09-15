@@ -105,11 +105,12 @@ class fraction_t {
      * Round fraction.  Fraction is rounded such that new denominator is no larger than denom
     */
     fraction_t& round(int denom);
+    fraction_t round(int denom) const { fraction_t f=*this; return f.round(denom); }
 
     /*
      * Absolute value
     */
-    fraction_t round() { return fraction_t(abs(numerator_),denominator_); }
+    fraction_t abs() const { return fraction_t(::abs(numerator_),denominator_); }
 
     /*
      * Convert fraction to string

@@ -16,12 +16,13 @@ and 0.33333333333 to 1/3)
 ## Algorithm
 The routine to convert a floating point to a fraction uses an iterative method. It works as follows:
 
-1. The initial approximation for the numerator is 1 and the denominator is 1 divided by the floating point value.
+1. The initial approximation for the numerator is 1 and the denominator is 1 divided by the
+fraction portion of the floating point value.
 For example, when converting 0.06 to a fraction, the denominator = 1/0.06 = 16.66666667 (rounded to 17),
 thus the initial approximation is 1/17.
 2. The difference between the floating point value and the the current approximation is computed.
 For the example, the difference is 1/17 - 0.06 = 0.058824 - 0.06 = -0.001176.
-3. If the difference is less than the defined tolerance, then the interation is terminated.
+3. If the difference is less than the defined tolerance (0.000005 by default), then the interation is terminated.
 4. Use the difference computed in step 2 to improve approximation of fraction. This is done by converting the
 difference into a fraction and adding (or subtracting) to the current approximation.  In the example,
 a negative difference indicates a low approximation -- thus difference needs to be added to current approximation.

@@ -40,6 +40,9 @@
 *.idb
 *.pdb
 
+# Backup files
+*.bak
+
 # Compiled java classes
 *.class
 

@@ -70,10 +70,10 @@ func(f* Fraction) Set(args ...interface{})  {
           f.numerator=reflect.ValueOf(args[0]).Int()
           f.denominator=1
         case float32,float64:
-          f.setfloat(reflect.ValueOf(args[0]).Float())
+          f.SetFloat(reflect.ValueOf(args[0]).Float())
           /*
             SetFloat calls this routine.  So reduce has already been
-            performed.
+            performed. Any further processing can be skipped
           */
           return
 
@@ -174,7 +174,8 @@ func FractionGeFraction(lhs Fraction,rhs Fraction) bool {
 }
 
 var epsilon float64 = 5e-6
-func(f *Fraction) setfloat(d float64)  {
+var Loops int
+func(f *Fraction) SetFloat(d float64)  {
   var sign int64
   if d < 0 {
     sign = -1
@@ -187,6 +188,7 @@ func(f *Fraction) setfloat(d float64)  {
   fract=math.Abs(d)-float64(whole)
   var numerator int64 = 0
   var denominator int64 = 1
+  Loops=0
   if fract > epsilon {
     // Starting approximation is 1 for numerator and 1/fract for denominator
     // For example, if converting 0.06 to fraction, 1/0.06 = 16.666666667
@@ -202,6 +204,7 @@ func(f *Fraction) setfloat(d float64)  {
       if math.Abs(diff) < epsilon {
         break;
       }
+      Loops++
       // The desired fraction is current fraction (numerator/denominator) +/- the difference
       // Convert difference to fraction in the same manner as starting approximation
       // (numerator = 1 and denominator = 1/diff) and add to current fraction.

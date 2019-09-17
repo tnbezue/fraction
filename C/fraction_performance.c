@@ -193,9 +193,9 @@ void frequency_array_display_graph(const frequency_array_t* freq_data,const char
   printf("\n");
 }
 
-void frequency_array_show_results(const frequency_array_t* freq_data,const char* xlabel)
+void frequency_array_show_results(const frequency_array_t* freq_data,const char* heading,const char* xlabel)
 {
-//  fraction_t f;
+  printf("\n%s\n",heading);
   char f_str[32];
   frequency_t* ptr_max=(frequency_t*)frequency_array_end(freq_data);
   ptr_max--;
@@ -220,7 +220,7 @@ int diff_in_ms(struct timespec start, struct timespec end)
 {
   double start_in_ms=1000000000*start.tv_sec+start.tv_nsec;
   double end_in_ms=1000000000*end.tv_sec+end.tv_nsec;
-  return round((end_in_ms-start_in_ms)/1000.0);
+  return round((end_in_ms-start_in_ms)/100.0);
 }
 
 /*
@@ -251,11 +251,11 @@ void simple_test(int denominator)
   frequency_array_t* loop_freq=new_frequency_array();
   do_test(denominator,time_freq,loop_freq);
   frequency_array_sort(time_freq);
-  frequency_array_show_results(time_freq,"t(ms)");
+  frequency_array_show_results(time_freq,"Time taken to convert floating point to faction (tims is in 100s of nanoseconds)","time");
   delete_frequency_array(time_freq);
 #ifdef CALCULATE_LOOP_STATISTICS
   frequency_array_sort(loop_freq);
-  frequency_array_show_results(loop_freq,"Loops");
+  frequency_array_show_results(loop_freq,"Number of interations to convert floating point to fraction","Loops");
   delete_frequency_array(loop_freq);
 #else
   printf("\nStatistics for loop count not gathered. To enable loop statistics:\n");
@@ -315,11 +315,11 @@ void random_test(int min_tests)
   }
   delete_int_array(denominators);
   frequency_array_sort(time_freq);
-  frequency_array_show_results(time_freq,"t(ms)");
+  frequency_array_show_results(time_freq,"Time taken to convert floating point to faction (tims is in 100s of nanoseconds)","t(ms)");
   delete_frequency_array(time_freq);
 #ifdef CALCULATE_LOOP_STATISTICS
   frequency_array_sort(loop_freq);
-  frequency_array_show_results(loop_freq,"Loops");
+  frequency_array_show_results(loop_freq,"Number of interations to convert floating point to fraction","Loops");
   delete_frequency_array(loop_freq);
 #else
   printf("\nStatistics for loop count not gathered. To enable loop statistics:\n");

@@ -118,8 +118,9 @@ class FractionPerformance
     }
 
 
-    public void ShowResults(String xlabel)
+    public void ShowResults(String heading,String xlabel)
     {
+      System.out.println("\n"+heading);
       System.out.println("Max "+xlabel+": "+frequencies[size-1].value);
       Statistics s = Statistics();
       System.out.println("Sample size: "+s.sample_size);
@@ -141,7 +142,7 @@ class FractionPerformance
       f.set((double)i/(double)denominator);
       long elapsed = System.nanoTime() - start;
       if(i>0) {  // First one can skew results
-        tick_freq.Increment((int)(elapsed/1000));
+        tick_freq.Increment((int)(elapsed/100));
         loop_freq.Increment(Fraction.loops);
       }
     }
@@ -153,10 +154,10 @@ class FractionPerformance
     FrequencyArray loop_freq = new FrequencyArray();
     DoTest(denominator,tick_freq,loop_freq);
     tick_freq.Sort();
-    tick_freq.ShowResults("Ticks");
+    tick_freq.ShowResults("Time taken to convert floating point to faction (tims is in 100s of nanoseconds)","Time");
     if(loop_freq.Size() > 1) {
       loop_freq.Sort();
-      loop_freq.ShowResults("Loops");
+      loop_freq.ShowResults("Number of interations to convert floating point to fraction","Loops");
     } else {
       System.out.println("\nStatistics for loop count not gathered. To enable loop statistics,");
       System.out.println("edit Fraction.java and set \"calculate_loop_statistics\" to true.");
@@ -188,10 +189,10 @@ class FractionPerformance
     for(int i=0;i<nDenominators;i++)
       DoTest(denominators[i],tick_freq,loop_freq);
     tick_freq.Sort();
-    tick_freq.ShowResults("Ticks");
+    tick_freq.ShowResults("Time taken to convert floating point to faction (tims is in 100s of nanoseconds)","Time");
     if(loop_freq.Size() > 1) {
       loop_freq.Sort();
-      loop_freq.ShowResults("Loops");
+      loop_freq.ShowResults("Number of interations to convert floating point to fraction","Loops");
     } else {
       System.out.println("\nStatistics for loop count not gathered. To enable loop statistics,");
       System.out.println("edit Fraction.java and set \"calculate_loop_statistics\" to true");

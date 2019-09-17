@@ -1,4 +1,5 @@
 import Fraction;
+import core.time;
 import core.stdc.time;
 import std.stdio;
 import std.math;
@@ -6,161 +7,194 @@ import core.sys.posix.unistd;
 import std.array;
 import std.random;
 import std.getopt;
+import std.algorithm.sorting;
 
-struct AutoArray {
-  int[] freq_;
-
-  int size() const { return cast(int)freq_.length; }
-  ref opIndex(int i) { if(freq_.length <= i) freq_.length=i+1; return freq_[i]; }
-  int opIndex(int i) const { return freq_[i]; }
-};
-
-class Stats {
-  protected:
+struct Statistics {
     double average_;
     double standard_deviation_;
-    int size_;
+    int sampleSize_;
     int median_;
     int mode_;
-  public:
-    this() { average_=0;standard_deviation_=0;size_=0;median_=0;mode_=0; }
-
-    void calc(const AutoArray freq_data)
-    {
-      average_=0;standard_deviation_=0;size_=0;
-      int i,sum,max_freq=0;
-      for(i=0;i<freq_data.size();i++) {
-        size_+=freq_data[i];
-        sum += i*freq_data[i];
-        if(freq_data[i] > max_freq) {
-          max_freq=freq_data[i];
-          mode_=i;
-        }
-      }
-      average_=(cast(double)sum)/(cast(double)size_);
-
-      // median and variance
-      double var=0;
-      int count=0;
-      median_=-1;
-      for(i=0;i<freq_data.size();i++) {
-        var+=(i-average_)*(i-average_)*freq_data[i];
-        count+=freq_data[i];
-        if(median_ == -1 && count >= size_/2)
-          median_=i;
-      }
-
-      // Standard deviation
-      standard_deviation_=sqrt(var/cast(double)(size_-1));
-    }
 
     Fraction average() const
     {
       return new Fraction(cast(double)(cast(int)(average_*100))/100.0);
     }
 
-    Fraction standard_deviation() const {
+    Fraction standardDeviation() const {
       return new Fraction(cast(double)(cast(int)(standard_deviation_*10))/10.0);
     }
-    int size() const { return size_; }
+    int sampleSize() const { return sampleSize_; }
     int median() const { return median_; }
     int mode() const { return mode_; }
 }
 
+struct Frequency {
+  int value;
+  int frequency;
+
+  int opCmp(ref const Frequency oFrequency) const {
+    return value - oFrequency.value;
+  }
+};
+
+struct FrequencyArray {
+  Frequency[] freq_;
+  int maxFreq;
+
+  void increment(int value)
+  {
+    int i;
+    for(i=0;i<freq_.length;i++) {
+      if (value == freq_[i].value)
+        break;
+    }
+    if(i==freq_.length) {
+      freq_.length+=1;
+      freq_[i].value = value;
+      freq_[i].frequency = 0;
+    }
+    freq_[i].frequency++;
+  }
+
+  void sort() {
+    freq_.sort();
+  }
+
+  Statistics stats()
+  {
+    Statistics s;
+    s.average_=0; s.sampleSize_=0;s.median_=-1;
+    int i,sum;
+    maxFreq=0;
+    for(i=0;i<freq_.length;i++) {
+      s.sampleSize_+=freq_[i].frequency;
+      sum += freq_[i].frequency*freq_[i].value;
+      if(freq_[i].frequency > maxFreq) {
+        maxFreq=freq_[i].frequency;
+        s.mode_=freq_[i].value;
+      }
+    }
+    s.average_=(cast(double)sum)/(cast(double)s.sampleSize_);
+
+    // median and variance
+    double var=0;
+    int count=0;
+    s.median_=-1;
+    for(i=0;i<freq_.length;i++) {
+      var+=(freq_[i].value-s.average_)*(freq_[i].value-s.average_)*freq_[i].frequency;
+      if(s.median_ == -1) {
+        count+=freq_[i].frequency;
+        if(count >= s.sampleSize_/2)
+          s.median_=freq_[i].value;
+      }
+    }
+
+    // Standard deviation
+    s.standard_deviation_=sqrt(var/cast(double)(s.sampleSize_-1));
+    return s;
+  }
+
+  void displayGraph(const string xlabel,const string ylabel)
+  {
+    // Get scale for graph
+    int i; int max_freq=0;
+    double scale=cast(double)terminal_cols/cast(double)maxFreq;
+    stdout.writefln("\n  %5s|                 %s",xlabel,ylabel);
+    stdout.writeln("  ",replicate("-",terminal_cols+6));
+    for(i=0;i<freq_.length;i++) {
+      stdout.writefln("  %3s  |%s %s",freq_[i].value,replicate("#",cast(int)round(freq_[i].frequency*scale)),freq_[i].frequency);
+    }
+    stdout.writeln();
+  }
+
+  void showResults(const string header,const string xlabel)
+  {
+    stdout.writeln("\n",header);
+    stdout.writeln("  Max ",xlabel,": ",freq_[freq_.length-1].value);
+    Statistics stats=stats();
+    stdout.writeln("  Sample size: ",stats.sampleSize());
+    stdout.writeln("  Average: ",stats.average().toStringMixed());
+    stdout.writeln("  Median: ",stats.median());
+    stdout.writeln("  Mode: ",stats.mode());
+    stdout.writeln("  Standard Deviation: ",stats.standardDeviation().toStringMixed());
+    displayGraph(xlabel,"Frequency");
+  }
+
+};
+
 const int terminal_cols=50;
-void display_graph(const AutoArray freq_data,const string xlabel,const string ylabel)
+
+void doTest(int denominator,ref FrequencyArray timeFreq,ref FrequencyArray loopFreq)
 {
-  // Get scale for graph
-  int i; int max_freq=0;
-  for(i=0;i<freq_data.size();i++) {
-    if(freq_data[i]>max_freq)
-      max_freq=freq_data[i];
+  Fraction f=new Fraction;
+  int i;
+  for(i=0;i<denominator;i++) {
+    double value=cast(double)i/cast(double)denominator;
+    MonoTime before = MonoTime.currTime;
+    f = value;
+    MonoTime after = MonoTime.currTime;
+    Duration timeElapsed = after - before;
+    if(i>0) {
+      timeFreq.increment(cast(int)timeElapsed.total!"hnsecs");
+      version (CALCULATE_LOOP_STATISTICS) {
+        loopFreq.increment(f.loops);
+      }
+    }
   }
-  double scale=cast(double)terminal_cols/cast(double)max_freq;
-  stdout.writeln("\n",xlabel,"|                 ",ylabel);
-  stdout.writeln(replicate("-",terminal_cols+6));
-  for(i=0;i<freq_data.size();i++) {
-    stdout.writefln("%3s  |%s %s",i,replicate("#",cast(int)round(freq_data[i]*scale)),freq_data[i]);
-  }
-  stdout.writeln();
 }
 
-void show_results(const AutoArray tick_freq,const AutoArray loop_freq)
+void singleTest(int denominator)
 {
-  stdout.writeln("Max time (in clock ticks): ",tick_freq.size()-1);
-  Stats stats=new Stats;
-  stats.calc(tick_freq);
-  stdout.writeln("Sample size: ",stats.size());
-  stdout.writeln("Average: ",stats.average().toStringMixed());
-  stdout.writeln("Median: ",stats.median());
-  stdout.writeln("Mode: ",stats.mode());
-  stdout.writeln("Standard Deviation: ",stats.standard_deviation().toStringMixed());
-  display_graph(tick_freq,"Ticks","Frequency");
+  FrequencyArray timeFreq;
+  FrequencyArray loopFreq;
+  doTest(denominator,timeFreq,loopFreq);
+  timeFreq.sort();
+  timeFreq.showResults("Time taken to convert floating point to faction (tims is in 100s of nanoseconds)","Time");
   version (CALCULATE_LOOP_STATISTICS) {
-    stdout.writeln("Max loops: ",loop_freq.size()-1);
-    stats.calc(loop_freq);
-    stdout.writeln("Sample size: ",stats.size());
-    stdout.writeln("Average: ",stats.average().toStringMixed());
-    stdout.writeln("Median: ",stats.median());
-    stdout.writeln("Mode: ",stats.mode());
-    stdout.writeln("Standard Deviation: ",stats.standard_deviation().toStringMixed());
-    display_graph(loop_freq,"Loops","Frequency");
+    loopFreq.sort();
+    loopFreq.showResults("Number of interations to convert floating point to fraction","Loops");
   } else {
     stdout.writeln("\nStatistics for loop count not gathered. To enable loop statistics,\n");
     stdout.writeln("recompile enabing version \"CALCULATE_LOOP_STATISTICS\"\n");
   }
 }
 
-void do_test(int denominator,ref AutoArray tick_freq,ref AutoArray loop_freq)
+void randomTest(int min_tests)
 {
-  Fraction f=new Fraction;
-  int i;
-  for(i=1;i<denominator;i++) {
-    double value=cast(double)i/cast(double)denominator;
-    long start=clock();
-    f = value;
-    int ticks=cast(int)(clock()-start);
-    tick_freq[ticks]++;
-    version (CALCULATE_LOOP_STATISTICS) {
-      loop_freq[f.loops]++;
-    }
-  }
-}
-
-void single_test(int denominator)
-{
-  AutoArray tick_freq;
-  AutoArray loop_freq;
-  do_test(denominator,tick_freq,loop_freq);
-  show_results(tick_freq,loop_freq);
-}
-
-void random_test(int min_tests)
-{
-  AutoArray tick_freq;
-  AutoArray loop_freq;
+  FrequencyArray timeFreq;
+  FrequencyArray loopFreq;
   const int max_denominators=100;
-  AutoArray denominators;
+  int[] denominators;
   auto rnd = Random(cast(int)time(null));
   int ntest=0,i;
   while(ntest < min_tests) {
     int denominator = uniform(min_tests, 214748364, rnd) % min_tests;
     bool found=false;
-    for(i=0;i<denominators.size();i++) {
+    for(i=0;i<denominators.length;i++) {
       if(denominator==denominators[i]) {
         found=true;
         break;
       }
     }
     if(!found) {
+      denominators.length+=1;
       denominators[i]=denominator;
-      ntest+=denominator;
+      ntest+=denominator-1;
     }
   }
-  for(i=0;i<denominators.size();i++) {
-    do_test(denominators[i],tick_freq,loop_freq);
+  for(i=0;i<denominators.length;i++) {
+    doTest(denominators[i],timeFreq,loopFreq);
   }
-  show_results(tick_freq,loop_freq);
+  timeFreq.sort();
+  timeFreq.showResults("Time taken to convert floating point to faction (tims is in 100s of nanoseconds)","Time");
+  version (CALCULATE_LOOP_STATISTICS) {
+    loopFreq.sort();
+    loopFreq.showResults("Number of interations to convert floating point to fraction","Loops");
+  } else {
+    stdout.writeln("\nStatistics for loop count not gathered. To enable loop statistics,\n");
+    stdout.writeln("recompile enabing version \"CALCULATE_LOOP_STATISTICS\"\n");
+  }
 }
 
 void syntax(string pgm)
@@ -204,11 +238,11 @@ void main(string[] args)
       return;
     }
     if(denominator>0)
-      single_test(denominator);
+      singleTest(denominator);
     if(min_tests > 0)
-      random_test(min_tests);
+      randomTest(min_tests);
   } else {
-    single_test(1000);
-    random_test(1000);
+    singleTest(1000);
+    randomTest(1000);
   }
 }

@@ -5,13 +5,6 @@ type Fraction struct {
 	numerator int64
 	denominator int64
 }
-/*
-type FractionMethods interface {
-	Set(int32) Fraction
-	FromFloat(float64) Fraction
-  SetLongLong(int64,int64)
-}
-*/
 
 func(f *Fraction) Numerator() int64 {
   return f.numerator;
@@ -70,21 +63,16 @@ func(f* Fraction) Set(args ...interface{})  {
           f.numerator=reflect.ValueOf(args[0]).Int()
           f.denominator=1
         case float32,float64:
-          f.SetFloat(reflect.ValueOf(args[0]).Float())
-          /*
-            SetFloat calls this routine.  So reduce has already been
-            performed. Any further processing can be skipped
-          */
-          return
+          f.setfloat(reflect.ValueOf(args[0]).Float())
 
         default: /* Error */
       }
 
-    case 2: /* Two int types for numerator and denominator */
+    case 2: /* Two int types for numerator and denominator. Panic if not ints  */
       f.numerator=reflect.ValueOf(args[0]).Int()
       f.denominator=reflect.ValueOf(args[1]).Int()
 
-    case 3: /* Three int types for whole, numberator, denominator (mixed fraction) */
+    case 3: /* Three int types for whole, numberator, denominator (mixed fraction). Panic if not ints */
       w=reflect.ValueOf(args[0]).Int()
       f.denominator=reflect.ValueOf(args[2]).Int()
       if w<0 {
@@ -92,6 +80,8 @@ func(f* Fraction) Set(args ...interface{})  {
       } else {
        f.numerator =w*f.denominator+reflect.ValueOf(args[1]).Int()
       }
+
+      default:  /* Error */
   }
   f.reduce();
 }
@@ -173,9 +163,11 @@ func FractionGeFraction(lhs Fraction,rhs Fraction) bool {
   return cmp(lhs,rhs) >= 0;
 }
 
-var epsilon float64 = 5e-6
+// Remove Loops here and in setfloat routine for production version
 var Loops int
-func(f *Fraction) SetFloat(d float64)  {
+
+var epsilon float64 = 5e-6
+func(f *Fraction) setfloat(d float64)  {
   var sign int64
   if d < 0 {
     sign = -1
@@ -221,7 +213,8 @@ func(f *Fraction) SetFloat(d float64)  {
     }
   }
   // Reduce fraction by dividing numerator and denominator by greatest common divisor
-  f.Set(sign*(whole*denominator+numerator),denominator)
+  f.numerator = sign*(whole*denominator+numerator)
+  f.denominator = denominator
 }
 
 func(f Fraction) Abs() Fraction {

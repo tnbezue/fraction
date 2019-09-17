@@ -22,21 +22,21 @@ For example, when converting 0.06 to a fraction, the denominator = 1/0.06 = 16.6
 thus the initial approximation is 1/17.
 2. The difference between the floating point value and the the current approximation is computed.
 For the example, the difference is 1/17 - 0.06 = 0.058824 - 0.06 = -0.001176.
-3. If the difference is less than the defined tolerance (0.000005 by default), then the interation is terminated.
+3. If the difference is less than the defined tolerance (0.000005 by default), then the iteration is terminated.
 4. Use the difference computed in step 2 to improve approximation of fraction. This is done by converting the
 difference into a fraction and adding (or subtracting) to the current approximation.  In the example,
 a negative difference indicates a low approximation -- thus difference needs to be added to current approximation.
 The difference fraction is the numerator = 1 and denominator = 1/0.001176 = 850 -- difference in fraction from is 1/850.
 The new current approximation will be (1/17) + (1/850) = (850\*1 + 17\*1)/(850*17) = 867/14450.
 5. Repeat steps 2 to 4 until solution found.
-6. After solution found, the fraction is reduced.  For example, 867/14450 is exactly 0.06 and the interation
+6. After solution found, the fraction is reduced.  For example, 867/14450 is exactly 0.06 and the iteration
 process is terminated.  867/14450 is reduced to 3/50.
 
 Some features of this method are:
 * If the resulting fraction 1/anything, the first approximation will be exact. For example,
 converting 0.25 to fraction, the first approximation will be 1/4. Thus further iterations are not needed.
-* In majority (> 80%) of 1,000,000 test cases, convergance occures in 2 iteration or less.
-* For all test cases, the maximum number of interations was 3.
+* In majority (> 80%) of 1,000,000 test cases, convergence occurs in 2 iteration or less.
+* For all test cases, the maximum number of iterations was 3.
 
 ## Testing and Performance
 
@@ -44,5 +44,5 @@ For each language, a test_fraction (tests all methods provided) and fraction per
 (measures converting from floating point to fraction speed) program are provided.
 
 ## Notes
-* The default tolerance is 0.000005. If a smaller tolerance is used, then the number of interations
+* The default tolerance is 0.000005. If a smaller tolerance is used, then the number of iterations
 may increase.

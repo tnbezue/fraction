@@ -56,7 +56,7 @@ class frequency_array_t : public vector<frequency_t>
     void sort() { std::sort(this->begin(),this->end()); }
     void increment(int value);
     void display_graph(const string&,const string&) const;
-    void show_results(const string&) const;
+    void show_results(const string&,const string&) const;
     statistics_t statistics() const;
 };
 
@@ -123,9 +123,9 @@ void frequency_array_t::display_graph(const string& xlabel,const string& ylabel)
   cout << endl;
 }
 
-void frequency_array_t::show_results(const string& xlabel) const
+void frequency_array_t::show_results(const string& heading,const string& xlabel) const
 {
-//  fraction_t f;
+  cout << endl << heading << endl;
   cout << "Max " << xlabel << ": " << (*this)[size()-1].value << endl;
   statistics_t stats=statistics();
 //  stats.calc(time_freq);
@@ -138,7 +138,7 @@ void frequency_array_t::show_results(const string& xlabel) const
 }
 
 #define diff_in_ms(start,end) \
-  (((1000000000*end.tv_sec+end.tv_nsec) - (1000000000*start.tv_sec+start.tv_nsec))/1000)
+  ::round((((1000000000.0*end.tv_sec+end.tv_nsec) - (1000000000.0*start.tv_sec+start.tv_nsec))/100.0))
 
 void do_test(int denominator,frequency_array_t& time_freq,frequency_array_t& loop_freq)
 {
@@ -166,10 +166,10 @@ void single_test(int denominator)
   frequency_array_t loop_freq;
   do_test(denominator,time_freq,loop_freq);
   time_freq.sort();
-  time_freq.show_results("t(ms)");
+  time_freq.show_results("Time taken to convert floating point to faction (tims is in 100s of nanoseconds)","time");
 #ifdef CALCULATE_LOOP_STATISTICS
   loop_freq.sort();
-  loop_freq.show_results("Loops");
+  loop_freq.show_results("Number of interations to convert floating point to fraction","Loops");
 #else
   cout << "\nStatistics for loop count not gathered. To enable loop statistics:\n";
   cout << "  make clean\n";
@@ -198,10 +198,10 @@ void random_test(int min_tests)
     do_test(*i,time_freq,loop_freq);
   }
   time_freq.sort();
-  time_freq.show_results("t(ms)");
+  time_freq.show_results("Time taken to convert floating point to faction (tims is in 100s of nanoseconds)","time");
 #ifdef CALCULATE_LOOP_STATISTICS
   loop_freq.sort();
-  loop_freq.show_results("Loops");
+  loop_freq.show_results("Number of interations to convert floating point to fraction","Loops");
 #else
   cout << "\nStatistics for loop count not gathered. To enable loop statistics:\n";
   cout << "  make clean\n";

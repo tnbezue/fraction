@@ -134,11 +134,11 @@ void doTest(int denominator,ref FrequencyArray timeFreq,ref FrequencyArray loopF
     MonoTime before = MonoTime.currTime;
     f = value;
     MonoTime after = MonoTime.currTime;
-    Duration timeElapsed = after - before;
+    long timeElapsed = after.ticks - before.ticks;
     if(i>0) {
-      timeFreq.increment(cast(int)timeElapsed.total!"hnsecs");
+      timeFreq.increment(cast(int)timeElapsed/10);
       version (CALCULATE_LOOP_STATISTICS) {
-        loopFreq.increment(f.loops);
+        loopFreq.increment(f.nLoops);
       }
     }
   }
@@ -150,7 +150,7 @@ void singleTest(int denominator)
   FrequencyArray loopFreq;
   doTest(denominator,timeFreq,loopFreq);
   timeFreq.sort();
-  timeFreq.showResults("Time taken to convert floating point to faction (tims is in 100s of nanoseconds)","Time");
+  timeFreq.showResults("Time taken to convert floating point to faction (tims is in 10s of nanoseconds)","Time");
   version (CALCULATE_LOOP_STATISTICS) {
     loopFreq.sort();
     loopFreq.showResults("Number of interations to convert floating point to fraction","Loops");
@@ -187,7 +187,7 @@ void randomTest(int min_tests)
     doTest(denominators[i],timeFreq,loopFreq);
   }
   timeFreq.sort();
-  timeFreq.showResults("Time taken to convert floating point to faction (tims is in 100s of nanoseconds)","Time");
+  timeFreq.showResults("Time taken to convert floating point to faction (tims is in 10s of nanoseconds)","Time");
   version (CALCULATE_LOOP_STATISTICS) {
     loopFreq.sort();
     loopFreq.showResults("Number of interations to convert floating point to fraction","Loops");

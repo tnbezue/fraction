@@ -17,22 +17,22 @@ class TestFraction {
     }
   }
 
-  static void S(Fraction f,long n,long d)
+  static void S(Fraction f,int n,int d)
   {
     f.Set(n,d);
   }
 
-  static void S(Fraction f,long w,long n,long d)
+  static void S(Fraction f,int w,int n,int d)
   {
     f.Set(w,n,d);
   }
 
-  static bool R(Fraction f,long n,long d)
+  static bool R(Fraction f,int n,int d)
   {
     return f.Numerator() == n && f.Denominator() == d;
   }
 
-  static void TestSetLong()
+  static void TestSetInt()
   {
     TestHarness.TestCase("Fraction Set(int)");
     Fraction f = new Fraction();
@@ -45,15 +45,13 @@ class TestFraction {
     }
   }
 
-  static void TestSetLongLong()
+  static void TestSetIntInt()
   {
     TestHarness.TestCase("Fraction Set(int,int)");
     Fraction f = new Fraction();
 
-    long [,] set_data  = new long [,] {
+    int [,] set_data  = new int [,] {
       { 1,-3,-1,3}, {-1,-3,1,3}, {-6,8,-3,4}, {2,4,1,2},{10,7,10,7},
-      { 17179869183,68719476736, 536870912,2147483647}, { 68719476736,17179869183,2147483647,536870912 }
-    , { -17179869183,68719476736, -536870912,2147483647}, { -68719476736,17179869183,-2147483647,536870912 }
     };
     int n = set_data.GetUpperBound(0);
     for(int i=0;i<=n;i++) {
@@ -63,7 +61,7 @@ class TestFraction {
     }
   }
 
-  static void TestSetLongLongLong()
+  static void TestSetIntIntInt()
   {
     TestHarness.TestCase("Fraction Set(int,int,int)");
     Fraction f = new Fraction();
@@ -83,8 +81,10 @@ class TestFraction {
   {
     TestHarness.TestCase("Fraction Set(double)");
     Fraction f = new Fraction();
-    double[] set_double_input = new double[] {-2.06, -0.06, 0.0, 0.06, 2.06, 0.3, 0.33, 0.33333333 , 20221.6543599839};
-    int [,] set_double_output = new int[,] { { -103,50}, {-3,50}, {0, 1}, {3,50} , {103,50}, {3,10}, {33,100}, {1,3}, { 2147483647,106197} };
+    double[] set_double_input = new double[] {-2.06, -0.06, 0.0, 0.06, 2.06, 0.3, 0.33,
+          0.33333333 , 20221.6543599839};
+    int [,] set_double_output = new int[,] { { -103,50}, {-3,50}, {0, 1}, {3,50} , {103,50},
+          {3,10}, {33,100}, {1,3}, { 25742166,1273 } };
     for(int i=0;i<set_double_input.Length;i++) {
       f.Set(set_double_input[i]);
       TestHarness.Test(String.Format("Set({0}) = ({1}/{2})",set_double_input[i],set_double_output[i,0],
@@ -305,9 +305,9 @@ class TestFraction {
   static TestHarness.TestMethod [] tests =
   {
     TestGCD,
-    TestSetLong,
-    TestSetLongLong,
-    TestSetLongLongLong,
+    TestSetInt,
+    TestSetIntInt,
+    TestSetIntIntInt,
     TestSetDouble,
     TestAdd,
     TestSubtract,

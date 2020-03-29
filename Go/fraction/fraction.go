@@ -2,20 +2,20 @@ package fraction
 import ("math";"fmt";"reflect")
 
 type Fraction struct {
-	numerator int64
-	denominator int64
+	numerator int
+	denominator int
 }
 
-func(f *Fraction) Numerator() int64 {
+func(f *Fraction) Numerator() int {
   return f.numerator;
 }
 
-func(f *Fraction) Denominator() int64 {
+func(f *Fraction) Denominator() int {
   return f.denominator;
 }
 
-func GCD(a int64,b int64) int64 {
-  var t int64
+func GCD(a int,b int) int {
+  var t int
   if a<0 {
     a = -a
   }
@@ -30,7 +30,7 @@ func GCD(a int64,b int64) int64 {
   return a
 }
 
-func abs(n int64) int64 {
+func abs(n int) int {
   if n<0 {
     return -n
   }
@@ -43,7 +43,7 @@ func(f* Fraction) reduce() {
     f.numerator=-f.numerator
   }
 
-  var divisor int64
+  var divisor int
   divisor=GCD(abs(f.numerator),f.denominator)
   if divisor != 1 {
     f.numerator/=divisor
@@ -53,14 +53,14 @@ func(f* Fraction) reduce() {
 
 func(f* Fraction) Set(args ...interface{})  {
 
-  var w int64
+  var w int
   nArgs :=len(args)
   switch nArgs {
     case 1:
       /* any int type (int, int32, etc) or float (float32 or float64) */
       switch args[0].(type) {
         case int,int8,int16,int32,int64:
-          f.numerator=reflect.ValueOf(args[0]).Int()
+          f.numerator=int(reflect.ValueOf(args[0]).Int())
           f.denominator=1
         case float32,float64:
           f.setfloat(reflect.ValueOf(args[0]).Float())
@@ -69,16 +69,16 @@ func(f* Fraction) Set(args ...interface{})  {
       }
 
     case 2: /* Two int types for numerator and denominator. Panic if not ints  */
-      f.numerator=reflect.ValueOf(args[0]).Int()
-      f.denominator=reflect.ValueOf(args[1]).Int()
+      f.numerator=int(reflect.ValueOf(args[0]).Int())
+      f.denominator=int(reflect.ValueOf(args[1]).Int())
 
     case 3: /* Three int types for whole, numberator, denominator (mixed fraction). Panic if not ints */
-      w=reflect.ValueOf(args[0]).Int()
-      f.denominator=reflect.ValueOf(args[2]).Int()
+      w=int(reflect.ValueOf(args[0]).Int())
+      f.denominator=int(reflect.ValueOf(args[2]).Int())
       if w<0 {
-       f.numerator =w*f.denominator-reflect.ValueOf(args[1]).Int()
+       f.numerator =w*f.denominator-int(reflect.ValueOf(args[1]).Int())
       } else {
-       f.numerator =w*f.denominator+reflect.ValueOf(args[1]).Int()
+       f.numerator =w*f.denominator+int(reflect.ValueOf(args[1]).Int())
       }
 
       default:  /* Error */
@@ -87,21 +87,19 @@ func(f* Fraction) Set(args ...interface{})  {
 }
 
 func(f *Fraction) Plus(other Fraction) {
-  f.Set(int64(f.numerator)*int64(other.denominator) + int64(f.denominator)*int64(other.numerator),
-      int64(f.denominator)*int64(other.denominator))
+  f.Set(f.numerator*other.denominator + f.denominator*other.numerator,f.denominator*other.denominator)
 }
 
 func(f *Fraction) Minus(other Fraction) {
-  f.Set(int64(f.numerator)*int64(other.denominator) - int64(f.denominator)*int64(other.numerator),
-      int64(f.denominator)*int64(other.denominator))
+  f.Set(f.numerator*other.denominator - f.denominator*other.numerator,f.denominator*other.denominator)
 }
 
 func(f *Fraction) Times(other Fraction) {
-  f.Set(int64(f.numerator)*int64(other.numerator),int64(f.denominator)*int64(other.denominator))
+  f.Set(f.numerator*other.numerator,f.denominator*other.denominator)
 }
 
 func(f *Fraction) DividedBy(other Fraction) {
-  f.Set(int64(f.numerator)*int64(other.denominator),int64(f.denominator)*int64(other.numerator))
+  f.Set(f.numerator*other.denominator,f.denominator*other.numerator)
 }
 
 func FractionPlusFraction(lhs Fraction,rhs Fraction) Fraction {
@@ -129,14 +127,7 @@ func FractionDividedByFraction(lhs Fraction,rhs Fraction) Fraction {
 }
 
 func cmp(lhs Fraction,rhs Fraction) int {
-  var result int64 = int64(lhs.numerator)*int64(rhs.denominator) - int64(rhs.numerator)*int64(lhs.denominator)
-  if result < 0 {
-    return -1
-  }
-  if result > 0 {
-    return 1
-  }
-  return 0
+  return lhs.numerator*rhs.denominator - rhs.numerator*lhs.denominator
 }
 
 func FractionEqFraction(lhs Fraction,rhs Fraction) bool {
@@ -168,7 +159,31 @@ var Loops int
 
 var epsilon float64 = 5e-6
 func(f *Fraction) setfloat(d float64)  {
-  var sign int64
+  var hm2,hm1,km2,km1,h,k int = 0,1,1,0,0,0
+  var v float64 = d
+  Loops=0
+  for true {
+    var a int = int(v)
+    h=a*hm1 + hm2
+    k=a*km1 + km2
+    if math.Abs(d - float64(h)/float64(k)) < epsilon {
+      break
+    }
+    v = 1.0/(v - float64(a))
+    hm2=hm1
+    hm1=h
+    km2=km1
+    km1=k
+    Loops++
+  }
+  if k<0 {
+    k=-k
+    h=-h
+  }
+  f.numerator=h
+  f.denominator=k
+
+/*  var sign int64
   if d < 0 {
     sign = -1
   } else {
@@ -214,7 +229,7 @@ func(f *Fraction) setfloat(d float64)  {
   }
   // Reduce fraction by dividing numerator and denominator by greatest common divisor
   f.numerator = sign*(whole*denominator+numerator)
-  f.denominator = denominator
+  f.denominator = denominator*/
 }
 
 func(f Fraction) Abs() Fraction {
@@ -224,9 +239,9 @@ func(f Fraction) Abs() Fraction {
   return f;
 }
 
-func(f Fraction) Round(denom int64) Fraction {
-  if int64(f.denominator) > denom {
-    f.Set(int64(math.Round(float64(denom)*float64(f.numerator)/float64(f.denominator))),
+func(f Fraction) Round(denom int) Fraction {
+  if int(f.denominator) > denom {
+    f.Set(int(math.Round(float64(denom)*float64(f.numerator)/float64(f.denominator))),
         denom)
   }
   return f;
@@ -243,8 +258,8 @@ func(f Fraction) MixedString() string {
   if f.numerator < f.denominator {
     return f.String();
   }
-  var w int64
-  var n int64
+  var w int
+  var n int
   w = f.numerator / f.denominator
   n = f.numerator - w*f.denominator
   if n == 0 {
@@ -252,4 +267,3 @@ func(f Fraction) MixedString() string {
   }
   return fmt.Sprintf("%v %v/%v",w,n,f.denominator)
 }
-

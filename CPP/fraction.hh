@@ -44,12 +44,12 @@ class fraction_t {
     /*
      *  Set the numerator and denominator of fraction
     */
-    void set(int64_t,int64_t);
+    void set(int,int);
 
     /*
      * Set the fraction value from mixed fraction
     */
-    void set_mixed(int64_t w,int64_t n,int64_t d) { set(w*d+(w<0 ? -1 : 1)*n,d); }
+    void set_mixed(int w,int n,int d) { set(w*d+(w<0 ? -1 : 1)*n,d); }
 
     /*
      * Get the value of numerator
@@ -74,32 +74,34 @@ class fraction_t {
     /*
      * Add fraction to this fraction
     */
-    fraction_t& operator+=(const fraction_t& o)
-          { set(static_cast<int64_t>(numerator_)*static_cast<int64_t>(o.denominator_)
-              + static_cast<int64_t>(o.numerator_)*static_cast<int64_t>(denominator_),
-              static_cast<int64_t>(denominator_)*static_cast<int64_t>(o.denominator_)); return *this; }
+    fraction_t& operator+=(const fraction_t& o) {
+      set(numerator_*o.denominator_ + o.numerator_*denominator_,denominator_*o.denominator_);
+      return *this;
+    }
 
     /*
      * Subtract fraction from this fraction
     */
-    fraction_t& operator-=(const fraction_t& o)
-          { set(static_cast<int64_t>(numerator_)*static_cast<int64_t>(o.denominator_)
-              - static_cast<int64_t>(o.numerator_)*static_cast<int64_t>(denominator_),
-              static_cast<int64_t>(denominator_)*static_cast<int64_t>(o.denominator_)); return *this; }
+    fraction_t& operator-=(const fraction_t& o) {
+      set(numerator_*o.denominator_ - o.numerator_*denominator_,denominator_*o.denominator_);
+      return *this;
+    }
 
     /*
      * Multiply this fraction by fraction
     */
-    fraction_t& operator*=(const fraction_t& o)
-          { set(static_cast<int64_t>(numerator_)*static_cast<int64_t>(o.numerator_),
-              static_cast<int64_t>(denominator_)*static_cast<int64_t>(o.denominator_)); return *this; }
+    fraction_t& operator*=(const fraction_t& o) {
+      set(numerator_*o.numerator_,denominator_*o.denominator_);
+      return *this;
+    }
 
     /*
      * Divide this fraction by fraction
     */
-    fraction_t& operator/=(const fraction_t& o)
-          { set(static_cast<int64_t>(numerator_)*static_cast<int64_t>(o.denominator_),
-              static_cast<int64_t>(denominator_)*static_cast<int64_t>(o.numerator_)); return *this; }
+    fraction_t& operator/=(const fraction_t& o) {
+      set(numerator_*o.denominator_,denominator_*o.numerator_);
+      return *this;
+    }
 
     /*
      * Round fraction.  Fraction is rounded such that new denominator is no larger than denom
@@ -125,7 +127,7 @@ class fraction_t {
     /*
      * Greatest common divisor
     */
-    static int64_t gcd(int64_t,int64_t);
+    static int gcd(int,int);
 
     /*
      * Tolerance
@@ -163,8 +165,7 @@ class fraction_t {
    * Compares two fractions.  Return < 0 if lhs < rhs; 0 if lhs==rhs; > 0 if lhs > rhs
   */
   inline int fraction_cmp(const fraction_t& lhs,const fraction_t& rhs)
-    { return static_cast<int64_t>(lhs.numerator())*static_cast<int64_t>(rhs.denominator())
-            - static_cast<int64_t>(rhs.numerator())*static_cast<int64_t>(lhs.denominator()); }
+    { return lhs.numerator()*rhs.denominator() - rhs.numerator()*lhs.denominator(); }
 
   /*
    * Determines if lhs fraction equal to rhs fraction

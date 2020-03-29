@@ -126,8 +126,6 @@ class Stats {
 
 class FractionPerformance
 {
-  const int MaxTicks = 20;  // The maximum clock ticke expected to calculate fraction from double
-  const int MaxLoops = 10;  // The maximum number of loops to calculate fraction from double
   const int teminal_cols = 50;
   static void display_graph(FrequencyArray freq_data,string xlabel,string ylabel)
   {
@@ -143,40 +141,26 @@ class FractionPerformance
     Console.WriteLine();
   }
 
-  static void ShowResults(FrequencyArray tick_freq,FrequencyArray loop_freq)
+  static void ShowResults(FrequencyArray freq,string heading,string xlabel)
   {
-    Console.WriteLine("Max time (in clock ticks): ",tick_freq.MaxFreq);
+    Console.WriteLine("\n{0}\n",heading);
+    Console.WriteLine("Max {0}: {1}",xlabel,freq.Value(freq.Length-1));
     Stats stats=new Stats();
-    stats.Calc(tick_freq);
-    Console.WriteLine("Sample size: "+stats.Size());
-    Console.WriteLine("Average: "+stats.Average().ToStringMixed());
-    Console.WriteLine("Median: "+stats.Median());
-    Console.WriteLine("Mode: "+stats.Mode());
-    Console.WriteLine("Standard Deviation: "+stats.StandardDeviation().ToStringMixed());
-    display_graph(tick_freq,"Ticks","Frequency");
-#if CALCULATE_LOOP_STATISTICS
-      Console.WriteLine("Max loops: "+loop_freq.MaxFreq);
-      stats.Calc(loop_freq);
-      Console.WriteLine("Sample size: "+stats.Size());
-      Console.WriteLine("Average: "+stats.Average().ToStringMixed());
-      Console.WriteLine("Median: "+stats.Median());
-      Console.WriteLine("Mode: "+stats.Mode());
-      Console.WriteLine("Standard Deviation: "+stats.StandardDeviation().ToStringMixed());
-      display_graph(loop_freq,"Loops","Frequency");
-#else
-      Console.WriteLine("\nStatistics for loop count not gathered. To enable loop statistics,\n");
-      Console.WriteLine("recompile defining \"CALCULATE_LOOP_STATISTICS\"\n");
-#endif
+    stats.Calc(freq);
+    Console.WriteLine("Sample size: {0}",stats.Size());
+    Console.WriteLine("Average: {0}",stats.Average().ToStringMixed());
+    Console.WriteLine("Median: {0}",stats.Median());
+    Console.WriteLine("Mode: {0}",stats.Mode());
+    Console.WriteLine("Standard Deviation: {0}",stats.StandardDeviation().ToStringMixed());
+    display_graph(freq,xlabel,"Frequency");
   }
 
-  static void DoTest(int denominator,FrequencyArray tick_freq,FrequencyArray loop_freq)
+  static long tnanosecPerTick = (1000L*1000L*100L) / Stopwatch.Frequency;  // 10s of nanosecond conversion factor
+
+  static void DoTest(int denominator,FrequencyArray time_freq,FrequencyArray loop_freq)
   {
     Stopwatch stopWatch; // = Stopwatch.StartNew();
     Fraction f = new Fraction(0.0);
-/*    stopWatch.Stop();
-    stopWatch = Stopwatch.StartNew();
-    f.Set(00.2);
-    stopWatch.Stop();*/
     int i;
     for(i=0;i<denominator;i++) {
       stopWatch = Stopwatch.StartNew();
@@ -184,9 +168,9 @@ class FractionPerformance
       stopWatch.Stop();
       // According to Microsoft docs, when using Stopwatch, the first execution should be ignored
       if(i>0) {
-        tick_freq.Increment((int)stopWatch.Elapsed.Ticks);
+        time_freq.Increment((int)(stopWatch.Elapsed.Ticks*tnanosecPerTick));
 #if CALCULATE_LOOP_STATISTICS
-        loop_freq.Increment(Fraction.loops);
+        loop_freq.Increment(Fraction.nLoops);
 #endif
       }
     }
@@ -194,12 +178,18 @@ class FractionPerformance
 
   static void SingleTest(int denominator)
   {
-    FrequencyArray tick_freq = new FrequencyArray();
+    FrequencyArray time_freq = new FrequencyArray();
     FrequencyArray loop_freq = new FrequencyArray();
-    DoTest(denominator,tick_freq,loop_freq);
-    tick_freq.Sort();
+    DoTest(denominator,time_freq,loop_freq);
+    time_freq.Sort();
     loop_freq.Sort();
-    ShowResults(tick_freq,loop_freq);
+    ShowResults(time_freq,"Time taken to convert floating point to faction (time is in 10s of nanoseconds)","Time");
+#if CALCULATE_LOOP_STATISTICS
+    ShowResults(loop_freq,"Iterations taken to convert floating point to faction","Loops");
+#else
+      Console.WriteLine("\nStatistics for loop count not gathered. To enable loop statistics,\n");
+      Console.WriteLine("recompile defining \"CALCULATE_LOOP_STATISTICS\"\n");
+#endif
   }
 
   static void RandomTest(int minTests)
@@ -222,14 +212,20 @@ class FractionPerformance
       }
     }
 
-    FrequencyArray tick_freq = new FrequencyArray();
+    FrequencyArray time_freq = new FrequencyArray();
     FrequencyArray loop_freq = new FrequencyArray();
     foreach (int denominator in denominators) {
-      DoTest(denominator,tick_freq,loop_freq);
+      DoTest(denominator,time_freq,loop_freq);
     }
-    tick_freq.Sort();
+    time_freq.Sort();
     loop_freq.Sort();
-    ShowResults(tick_freq,loop_freq);
+    ShowResults(time_freq,"Time taken to convert floating point to faction (time is in 10s of nanoseconds)","Time");
+#if CALCULATE_LOOP_STATISTICS
+    ShowResults(loop_freq,"Iterations taken to convert floating point to faction","Loops");
+#else
+      Console.WriteLine("\nStatistics for loop count not gathered. To enable loop statistics,\n");
+      Console.WriteLine("recompile defining \"CALCULATE_LOOP_STATISTICS\"\n");
+#endif
   }
 
   static void Syntax()

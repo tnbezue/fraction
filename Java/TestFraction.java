@@ -14,17 +14,17 @@ public class TestFraction
     }
   }
 
-  static void S(Fraction f,long n,long d)
+  static void S(Fraction f,int n,int d)
   {
     f.set(n,d);
   }
 
-  static void S(Fraction f,long w,long n,long d)
+  static void S(Fraction f,int w,int n,int d)
   {
     f.set(w,n,d);
   }
 
-  static boolean R(Fraction f,long n,long d)
+  static boolean R(Fraction f,int n,int d)
   {
 //    System.out.println(f.numerator()+" "+f.denominator());
     return f.numerator() == n && f.denominator() == d;
@@ -42,10 +42,8 @@ public class TestFraction
       TestHarness.Test("Set("+set_data[i] + ") = "+set_data[i]+"/1",R(f,set_data[i],1));
     }
 
-    long set_nd_data[][] = {
+    int set_nd_data[][] = {
       { 1,-3,-1,3}, {-1,-3,1,3}, {-6,8,-3,4}, {2,4,1,2},{10,7,10,7},
-      { 17179869183L,68719476736L, 536870912L,2147483647L}, { 68719476736L,17179869183L,2147483647L,536870912L }
-    , { -17179869183L,68719476736L, -536870912L,2147483647L}, { -68719476736L,17179869183L,-2147483647L,536870912L }
     };
     for(i=0;i<set_nd_data.length;i++) {
       f.set(set_nd_data[i][0],set_nd_data[i][1]);

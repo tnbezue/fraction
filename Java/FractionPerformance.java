@@ -106,13 +106,13 @@ class FractionPerformance
 
     void DisplayGraph(String xlabel,String ylabel)
     {
-      System.out.println("\n"+xlabel+"              "+ylabel);
-      System.out.println("-----------------------------------------------------------------");
+      System.out.println("\n  "+xlabel+"              "+ylabel);
+      System.out.println("  -----------------------------------------------------------------");
       double scale=50.0/maxFreq;
       int i;
       for(i=0;i<size;i++) {
         int height=(int)((double)frequencies[i].frequency*scale);
-        System.out.println(frequencies[i].value+"|"+"#".repeat(height)+" "+frequencies[i].frequency);
+        System.out.println("  "+frequencies[i].value+"|"+"#".repeat(height)+" "+frequencies[i].frequency);
       }
       System.out.println();
     }
@@ -121,13 +121,14 @@ class FractionPerformance
     public void ShowResults(String heading,String xlabel)
     {
       System.out.println("\n"+heading);
-      System.out.println("Max "+xlabel+": "+frequencies[size-1].value);
+      System.out.println("  Min "+xlabel+": "+frequencies[0].value);
+      System.out.println("  Max "+xlabel+": "+frequencies[size-1].value);
       Statistics s = Statistics();
-      System.out.println("Sample size: "+s.sample_size);
-      System.out.println("Average: "+s.Average().toMixedString());
-      System.out.println("Median: "+s.Median());
-      System.out.println("Mode: "+s.Mode());
-      System.out.println("Standard deviation: "+s.StandardDeviation().toMixedString());
+      System.out.println("  Sample size: "+s.sample_size);
+      System.out.println("  Average: "+s.Average().toMixedString());
+      System.out.println("  Median: "+s.Median());
+      System.out.println("  Mode: "+s.Mode());
+      System.out.println("  Standard deviation: "+s.StandardDeviation().toMixedString());
       DisplayGraph(xlabel,"Frequency");
     }
 
@@ -142,8 +143,8 @@ class FractionPerformance
       f.set((double)i/(double)denominator);
       long elapsed = System.nanoTime() - start;
       if(i>0) {  // First one can skew results
-        tick_freq.Increment((int)(elapsed/100));
-        loop_freq.Increment(Fraction.loops);
+        tick_freq.Increment((int)(elapsed/10.0));
+        loop_freq.Increment(Fraction.nLoops);
       }
     }
   }
@@ -154,7 +155,7 @@ class FractionPerformance
     FrequencyArray loop_freq = new FrequencyArray();
     DoTest(denominator,tick_freq,loop_freq);
     tick_freq.Sort();
-    tick_freq.ShowResults("Time taken to convert floating point to faction (tims is in 100s of nanoseconds)","Time");
+    tick_freq.ShowResults("Time taken to convert floating point to faction (time is in 10s of nanoseconds)","Time");
     if(loop_freq.Size() > 1) {
       loop_freq.Sort();
       loop_freq.ShowResults("Number of interations to convert floating point to fraction","Loops");
@@ -189,7 +190,7 @@ class FractionPerformance
     for(int i=0;i<nDenominators;i++)
       DoTest(denominators[i],tick_freq,loop_freq);
     tick_freq.Sort();
-    tick_freq.ShowResults("Time taken to convert floating point to faction (tims is in 100s of nanoseconds)","Time");
+    tick_freq.ShowResults("Time taken to convert floating point to faction (time is in 10s of nanoseconds)","Time");
     if(loop_freq.Size() > 1) {
       loop_freq.Sort();
       loop_freq.ShowResults("Number of interations to convert floating point to fraction","Loops");

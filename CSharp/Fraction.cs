@@ -5,7 +5,7 @@ public class Fraction : IComparable {
   protected int _numerator;
   protected int _denominator;
 
-  public static double epsilon = 0.000005;
+  public static double epsilon = 5e-7;
 
   public Fraction()
   {
@@ -54,9 +54,9 @@ public class Fraction : IComparable {
     return _denominator;
   }
 
-public static long gcd(long a,long b)
+public static int gcd(int a,int b)
   {
-    long t;
+    int t;
     while(b!=0) {
       t = b;
       b = a % b;
@@ -65,7 +65,7 @@ public static long gcd(long a,long b)
     return a;
   }
 
-  public void Set(long n,long d)
+  public void Set(int n,int d)
   {
     // Negative sign should be in numerator
     if(d<0) {
@@ -74,108 +74,87 @@ public static long gcd(long a,long b)
     }
 
     // Reduce to lowest fraction
-    long divisor;
+    int divisor;
     if((divisor=Fraction.gcd(Math.Abs(n),d)) != 1) {
       n /= divisor;
       d /= divisor;
-    }
-
-    // Result should fit in an integer value
-    long max=Math.Abs(n)<d ? d : Math.Abs(n);
-    if(max > (long)int.MaxValue) {
-      double scale=(double)max/((double)int.MaxValue);
-      n=(int)Math.Round((double)n/scale);
-      d=(int)Math.Round((double)d/scale);
-
-      /// May need to be reduced again
-      if((divisor=Fraction.gcd(Math.Abs(n),d)) != 1) {
-        n /= divisor;
-        d /= divisor;
-      }
     }
 
     _numerator=(int)n;
     _denominator=(int)d;
   }
 
-  public void Set(long w,long n,long d)
+  public void Set(int w,int n,int d)
   {
     Set(w*d+(w<0 ? -1 : 1)*n,d);
   }
+
 #if CALCULATE_LOOP_STATISTICS
-  public static int loops=0;
+  public static int nLoops=0;
 #endif
   public void Set(double d)
   {
-    long sign = d<0 ? -1 : 1;
-    long whole = Math.Abs((long)d);
-    double fract=Math.Abs(d)-whole;
-    long numerator=0;
-    long denominator=1; // Round to next whole number if very close to it
+    int hm2=0,hm1=1,km2=1,km1=0,h=0,k=0;
+    double v = d;
 #if CALCULATE_LOOP_STATISTICS
-    loops=0;
+    nLoops=0;
 #endif
-    if(fract > Fraction.epsilon) {
-      // Starting approximation is 1 for numerator and 1/fract for denominator
-      // For example, if converting 0.06 to fraction, 1/0.06 = 16.666666667
-      // So starting fraction is 1/17
-      numerator=1;
-      denominator=(long)Math.Round(1.0/fract);
-      while(true) {
-        // End if it's close enough to fract
-        double value=(double)numerator/(double)denominator;
-        double diff=value-fract;
-        if(Math.Abs(diff) < Fraction.epsilon)
-          break;
+    while(true) {
+      int a=(int)v;
+      h=a*hm1 + hm2;
+      k=a*km1 + km2;
+      if(Math.Abs(d - (double)h/(double)k) < Fraction.epsilon)
+        break;
+      v = 1.0/(v -a);
+      hm2=hm1;
+      hm1=h;
+      km2=km1;
+      km1=k;
 #if CALCULATE_LOOP_STATISTICS
-        loops++;
+      nLoops++;
 #endif
-        // The desired fraction is current fraction (numerator/denominator) +/- the difference
-        // Convert difference to fraction in the same manner as starting approximation
-        // (numerator = 1 and denominator = 1/diff) and add to current fraction.
-        // numerator/denominator + 1/dd = (numerator*dd + denominator)/(denominator*dd)
-        long dd;
-        dd=(long)(Math.Round(Math.Abs(1.0/diff)));
-        numerator=numerator*dd+(diff < 0 ? 1 : -1)*denominator;
-        denominator*=dd;
-      }
     }
-    Set(sign*((long)whole*(long)denominator+(long)numerator),(long)denominator);
+    if(k<0) {
+      k=-k;
+      h=-h;
+    }
+    _numerator=h;
+    _denominator=k;
+
   }
 
   public static Fraction operator+(Fraction a,Fraction b)
   {
     Fraction f=new Fraction();
-    f.Set((long)a._numerator*(long)b._denominator+(long)a._denominator*(long)b._numerator,
-          (long)a._denominator*(long)b._denominator);
+    f.Set((int)a._numerator*(int)b._denominator+(int)a._denominator*(int)b._numerator,
+          (int)a._denominator*(int)b._denominator);
     return f;
   }
 
   public static Fraction operator-(Fraction a,Fraction b)
   {
     Fraction f=new Fraction();
-    f.Set((long)a._numerator*(long)b._denominator-(long)a._denominator*(long)b._numerator,
-            (long)a._denominator*(long)b._denominator);
+    f.Set(a._numerator*b._denominator-a._denominator*b._numerator,a._denominator*b._denominator);
     return f;
   }
 
   public static Fraction operator*(Fraction a,Fraction b)
   {
     Fraction f=new Fraction();
-    f.Set((long)a._numerator*(long)b._numerator,(long)a._denominator*(long)b._denominator);
+    f.Set(a._numerator*b._numerator,a._denominator*b._denominator);
     return f;
   }
 
   public static Fraction operator/(Fraction a,Fraction b)
   {
     Fraction f=new Fraction();
-    f.Set((long)a._numerator*(long)b._denominator,(long)a._denominator*(long)b._numerator);
+    f.Set(a._numerator*b._denominator,a._denominator*b._numerator);
     return f;
   }
 
   protected static int cmp(Fraction lhs,Fraction rhs)
   {
-    return (int)((long)lhs._numerator*(long)rhs._denominator - (long)rhs._numerator*(long)lhs._denominator);
+    return (int)(lhs._numerator*rhs._denominator - rhs._numerator*lhs._denominator);
   }
 
   public static bool operator ==(Fraction lhs,Fraction rhs)
@@ -210,7 +189,7 @@ public static long gcd(long a,long b)
 
   public void Round(int denom)
   {
-    Set((long)Math.Round((double)denom*(double)_numerator/(double)_denominator),denom);
+    Set((int)Math.Round((double)denom*(double)_numerator/(double)_denominator),denom);
   }
 
   public bool Equals(Fraction obj)

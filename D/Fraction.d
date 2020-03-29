@@ -64,45 +64,37 @@ class Fraction {
     static double epsilon=0.000005;
 
     version (CALCULATE_LOOP_STATISTICS) {
-      static int loops;
+      static int nLoops;
     }
     void set(double d)
     {
-      // Will be 0/1 if fraction part is zero (or near zero)
-      long numerator=0;
-      long denominator=1;
-      long sign = d < 0 ? -1 : 1;
-      long whole = cast(long)fabs(d);
-      double fract=fabs(d)-whole;
+      int hm2=0,hm1=1,km2=1,km1=0,h=0,k=0;
+      double v = d;
       version (CALCULATE_LOOP_STATISTICS) {
-        Fraction.loops=0;
+        Fraction.nLoops=0;
       }
-      if(fract > Fraction.epsilon) {
-        // Starting approximation is 1 for numerator and 1/fract for denominator
-        // For example, if converting 0.06 to fraction, 1/0.06 = 16.666666667
-        // So starting fraction is 1/17
-        numerator=1;
-        denominator=cast(long)std.math.round(1.0/fract);
-        while(1) {
-          // End if it's close enough to fract
-          double value=cast(double)numerator/cast(double)denominator;
-          double diff=value-fract;
-          if(fabs(diff) < Fraction.epsilon)
-            break;
-            version (CALCULATE_LOOP_STATISTICS) {
-              Fraction.loops++;
-            }
-          // The desired fraction is current fraction (numerator/denominator) +/- the difference
-          // Convert difference to fraction in the same manner as starting approximation
-          // (numerator = 1 and denominator = 1/diff) and add to current fraction.
-          // numerator/denominator + 1/dd = (numerator*dd + denominator)/(denominator*dd)
-          long dd;
-          dd=cast(long)std.math.round(fabs(1.0/diff));
-          numerator=numerator*dd+(diff < 0 ? 1 : -1)*denominator;
-          denominator*=dd;
+      while(1) {
+        int a=cast(int)v;
+        h=a*hm1 + hm2;
+        k=a*km1 + km2;
+    //    printf("%lg %d %d %d %d %d %d %d\n",v,a,h,k,hm1,km1,hm2,km2);
+        if(fabs(d - cast(double)h/cast(double)k) < Fraction.epsilon)
+          break;
+        v = 1.0/(v -a);
+        hm2=hm1;
+        hm1=h;
+        km2=km1;
+        km1=k;
+        version (CALCULATE_LOOP_STATISTICS) {
+          Fraction.nLoops++;
         }
       }
-      set(sign*(whole*denominator+numerator),denominator);
+      if(k<0) {
+        k=-k;
+        h=-h;
+      }
+      numerator_=h;
+      denominator_=k;
     }
 
     override bool opEquals(Object o)

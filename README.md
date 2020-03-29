@@ -11,9 +11,10 @@ fractions.  I ported it to a few languages. My results are presented here.
 and 0.33333333333 to 1/3)
 * Add, subtract, divide, and multiply fractions
 * Compare fractions (==, !=, <, <=, >, >=)
-* Support variuus languages (C, C++, C#, D, Java, Ruby)
+* Support various languages (C, C++, C#, D, Java, Ruby)
 
 ## Algorithm
+
 The routine to convert a floating point to a fraction uses an iterative method. It works as follows:
 
 1. The initial approximation for the numerator is 1 and the denominator is 1 divided by the
@@ -38,10 +39,24 @@ converting 0.25 to fraction, the first approximation will be 1/4. Thus further i
 * In majority (> 80%) of 1,000,000 test cases, convergence occurs in 2 iteration or less.
 * For all test cases, the maximum number of iterations was 3.
 
-## Testing and Performance
+## Updated Algorithm
 
-For each language, a test_fraction (tests all methods provided) and fraction performance
-(measures converting from floating point to fraction speed) program are provided.
+The above algorithm had two shortcomings.
+* Although algorithm converges quickly (2 or 3 iterations), finding the greatest common divisor for the numerator and denominator took longer
+* For a smaller tolerance, the numerator and denominator can be very large (to large for 32 bit)
+
+Due to these shortcomings, the algorithm was changed to the continued fraction method (https://en.wikipedia.org/wiki/Continued_fraction).
+
+## Performance
+
+For each language, a fraction performance program is provided.  It creates two frequency charts that
+evaluate the floating point to fraction routing.  Tne first chart is for time (in hundreds of nanoseconds)
+and the second is for the number of iterations.
+
+Statistics can be gathered using a single denominator(N). Tests will be run from 1/N to (N-1)/N.
+Statistics can also be gathered using various random denominators.  For each random denominator,
+tests will be run from 1/N to (N-1)/N.  Use the "--help" option to get syntax.
+
 
 ## Notes
 * The default tolerance is 0.000005. If a smaller tolerance is used, then the number of iterations

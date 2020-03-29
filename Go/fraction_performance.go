@@ -101,7 +101,8 @@ func(fa *FrequencyArray) DisplayGraph(xlabel string,ylabel string,maxValue int) 
   }
 }
 
-func (fa *FrequencyArray) ShowResults(xlabel string) {
+func (fa *FrequencyArray) ShowResults(heading string,xlabel string) {
+  fmt.Println("\n",heading,"\n")
   fmt.Println("Max ",xlabel,": ",(*fa)[fa.Len()-1].value)
   s := fa.Statistics();
   fmt.Println("Sample size: ",s.size)
@@ -121,7 +122,7 @@ func DoTest(denominator int,time_freq *FrequencyArray,loop_freq *FrequencyArray)
     f.Set(value)
     elapsed := time.Now().Sub(start)
     if(i>0) {
-      time_freq.Increment(int(math.Round(float64(elapsed.Nanoseconds())/100.0)))
+      time_freq.Increment(int(math.Round(float64(elapsed.Nanoseconds())/10.0)))
       loop_freq.Increment(Loops)
     }
   }
@@ -133,9 +134,9 @@ func SingleTest(denominator int) {
   DoTest(denominator,&time_freq,&loop_freq)
   sort.Sort(FrequencyArray(time_freq))
   sort.Sort(FrequencyArray(loop_freq))
-  time_freq.ShowResults("t(us)")
+  time_freq.ShowResults("Time taken to convert floating point to faction (time is in 10s of nanoseconds)","Time")
   fmt.Println("")
-  loop_freq.ShowResults("Loops")
+  loop_freq.ShowResults("Number of iterations to convert floating point to fraction","Loops")
 }
 
 func RandomTest(minTests int) {
@@ -164,9 +165,9 @@ func RandomTest(minTests int) {
   }
   sort.Sort(FrequencyArray(time_freq))
   sort.Sort(FrequencyArray(loop_freq))
-  time_freq.ShowResults("t(us)")
+  time_freq.ShowResults("Time taken to convert floating point to faction (time is in 10s of nanoseconds)","time")
   fmt.Println("")
-  loop_freq.ShowResults("Loops")
+  loop_freq.ShowResults("Number of iterations to convert floating point to fraction","Loops")
 }
 
 func Syntax() {

@@ -3,7 +3,7 @@ TARGETS=test_fraction fraction_performance
 
 TEST_FRACTION_OBJS=fraction/fraction.o test_harness/test_harness.o test_fraction.o
 FRACTION_PERFORMANCE_OBJS=fraction_performance.o fraction/fraction.o
-GO=gccgo
+GO=gccgo -O2
 
 %.o: %.go
 	$(GO) -Ifraction -Itest_harness  -c  $< -o $@

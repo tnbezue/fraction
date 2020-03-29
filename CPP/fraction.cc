@@ -3,9 +3,9 @@
 
 double fraction_t::epsilon = 5e-6;
 
-int64_t fraction_t::gcd(int64_t a,int64_t b)
+int fraction_t::gcd(int a,int b)
 {
-  int64_t t;
+  int t;
   while(b!=0) {
     t = b;
     b = a % b;
@@ -15,11 +15,9 @@ int64_t fraction_t::gcd(int64_t a,int64_t b)
 }
 
 /*
-  Calculations are done with 64 bit integers. However, fraction uses 32 bit integers
-  Reduces numerator and denominator.
   Assignes to fraction.
 */
-void fraction_t::set(int64_t n,int64_t d)
+void fraction_t::set(int n,int d)
 {
   // Negative sign should be in numerator
   if(d<0) {
@@ -28,24 +26,10 @@ void fraction_t::set(int64_t n,int64_t d)
   }
 
   // Reduce to lowest fraction
-  int64_t divisor;
+  int divisor;
   if((divisor=gcd(labs(n),d)) != 1) {
     n/=divisor;
     d/=divisor;
-  }
-
-  // Result should fit in an integer value
-  int64_t max = labs(n) < d ? d : labs(n);
-  if(max > INT32_MAX) {
-    double scale=static_cast<double>(max)/static_cast<double>(INT32_MAX);
-    // To ensure below integer max, truncate rather than round
-    n=static_cast<int64_t>(::round(static_cast<double>(n)/scale));
-    d=static_cast<int64_t>(::round(static_cast<double>(d)/scale));
-    // May need to be reduced again
-    if((divisor=gcd(labs(n),d)) != 1) {
-      n/=divisor;
-      d/=divisor;
-    }
   }
 
   numerator_=n;
@@ -53,54 +37,46 @@ void fraction_t::set(int64_t n,int64_t d)
 }
 
 #ifdef CALCULATE_LOOP_STATISTICS
-int loops;
+int nLoops;
 #endif
 
 fraction_t& fraction_t::operator=(double d)
 {
-  int sign = d < 0 ? -1 : 1;
-  int64_t whole = labs(d);
-  double fract=fabs(d)-whole;
-  int64_t numerator=0;
-  int64_t denominator=1;
+  long hm2=0,hm1=1,km2=1,km1=0,h=0,k=0;
+  double v = d;
 #ifdef CALCULATE_LOOP_STATISTICS
-  loops=0;
+  nLoops=0;
 #endif
-  if(fract > fraction_t::epsilon) {
-    // Starting approximation is 1 for numerator and 1/fract for denominator
-    // For example, if converting 0.06 to fraction, 1/0.06 = 16.666666667
-    // So starting fraction is 1/17
-    numerator=1;
-    denominator=::round(1/fract);
-    while(1) {
-      // End if it's close enough to fract
-      double value=(double)numerator/(double)denominator;
-      double diff=value-fract;
-      if(fabs(diff) < fraction_t::epsilon)
-        break;
+  while(1) {
+    long a=v;
+    h=a*hm1 + hm2;
+    k=a*km1 + km2;
+//    printf("%lg %d %d %d %d %d %d %d\n",v,a,h,k,hm1,km1,hm2,km2);
+    if(fabs(d - (double)h/(double)k) < fraction_t::epsilon)
+      break;
+    v = 1.0/(v -a);
+    hm2=hm1;
+    hm1=h;
+    km2=km1;
+    km1=k;
 #ifdef CALCULATE_LOOP_STATISTICS
-      loops++;
+    nLoops++;
 #endif
-      // The desired fraction is current fraction (numerator/denominator) +/- the difference
-      // Convert difference to fraction in the same manner as starting approximation
-      // (numerator = 1 and denominator = 1/diff) and add to current fraction.
-      // numerator/denominator + 1/dd = (numerator*dd + denominator)/(denominator*dd)
-      int64_t dd;
-      dd=::round(fabs(1.0/diff));
-      numerator=numerator*dd+(diff < 0 ? 1 : -1)*denominator;
-      denominator*=dd;
-    }
   }
-
-  set(sign*(whole*denominator+numerator),denominator);
+  if(k<0) {
+    k=-k;
+    h=-h;
+  }
+  numerator_=h;
+  denominator_=k;
   return *this;
 }
 
 fraction_t& fraction_t::round(int denom)
 {
   if(denominator_ > denom)
-    set(static_cast<int64_t>(::round(static_cast<double>(numerator_)*static_cast<double>(denom)
-          /static_cast<double>(denominator_))),static_cast<int64_t>(denom));
+    set(static_cast<int>(::round(static_cast<double>(numerator_)*static_cast<double>(denom)
+          /static_cast<double>(denominator_))),static_cast<int>(denom));
   return *this;
 }
 

@@ -54,9 +54,9 @@ public final class Fraction extends Number implements Comparable<Fraction> {
     return denominator_;
   }
 
-  public static long gcd(long a,long b)
+  public static int gcd(int a,int b)
   {
-    long t;
+    int t;
     while(b!=0) {
       t = b;
       b = a % b;
@@ -65,7 +65,7 @@ public final class Fraction extends Number implements Comparable<Fraction> {
     return a;
   }
 
-  public void set(long n,long d)
+  public void set(int n,int d)
   {
     // Negative sign should be in numerator
     if(d<0) {
@@ -74,38 +74,49 @@ public final class Fraction extends Number implements Comparable<Fraction> {
     }
 
     // Reduce to lowest fraction
-    long divisor=Fraction.gcd(Math.abs(n),d);
-    n/=divisor;
-    d/=divisor;
-
-    // Result should fit in an integer value
-    long max = Math.abs(n) < d ? d : Math.abs(n);
-    if(max > (long)Integer.MAX_VALUE) {
-    double scale=(double)max/(double)Integer.MAX_VALUE;
-    // To ensure below integer max, truncate rather than round
-    n=(long)Math.round((double)n/scale);
-    d=(long)Math.round((double)d/scale);
-
-    // May need to be reduced again
-    if((divisor=gcd(Math.abs(n),d)) != 1) {
+    int divisor=Fraction.gcd(Math.abs(n),d);
+    if(divisor != 1) {
       n/=divisor;
       d/=divisor;
     }
-  }
+
     numerator_=(int)n;
     denominator_=(int)d;
   }
 
-  public void set(long w,long n,long d)
+  public void set(int w,int n,int d)
   {
     set(w*d+(w<0 ? -1 : 1)*n,d);
   }
 
-  public static int loops;
+  public static int nLoops;
   public void set(double d)
   {
-    long sign = d<0 ? -1 : 1;
-    long whole = Math.abs((long)d);
+  int hm2=0,hm1=1,km2=1,km1=0,h=0,k=0;
+  double v = d;
+  nLoops=0;
+  while(true) {
+    int a=(int)v;
+    h=a*hm1 + hm2;
+    k=a*km1 + km2;
+    if(Math.abs(d - (double)h/(double)k) < Fraction.epsilon)
+      break;
+    v = 1.0/(v -a);
+    hm2=hm1;
+    hm1=h;
+    km2=km1;
+    km1=k;
+    nLoops++;
+  }
+  if(k<0) {
+    k=-k;
+    h=-h;
+  }
+  numerator_=h;
+  denominator_=k;
+
+/*    int sign = d<0 ? -1 : 1;
+    int whole = Math.abs((long)d);
     double fract=Math.abs(d)-whole;
     long numerator=0;
     long denominator=1; // Round to next whole number if very close to it
@@ -136,7 +147,7 @@ public final class Fraction extends Number implements Comparable<Fraction> {
       }
     }
 
-    set(sign*(whole*denominator+numerator),denominator);
+    set(sign*(whole*denominator+numerator),denominator);*/
   }
 
   public void set(String s)
@@ -148,8 +159,7 @@ public final class Fraction extends Number implements Comparable<Fraction> {
 
   public void plus(Fraction a)
   {
-    set(((long)numerator_)*((long)a.denominator_) + ((long)a.numerator_)*((long)denominator_),
-        ((long)denominator_)*((long)a.denominator_));
+    set(numerator_*a.denominator_ + a.numerator_*denominator_,denominator_*a.denominator_);
   }
 
   public static Fraction add(Fraction a,Fraction b)
@@ -161,8 +171,7 @@ public final class Fraction extends Number implements Comparable<Fraction> {
 
   public void minus(Fraction a)
   {
-    set(((long)numerator_)*((long)a.denominator_) - ((long)a.numerator_)*((long)denominator_),
-        ((long)denominator_)*((long)a.denominator_));
+    set(numerator_*a.denominator_ - a.numerator_*denominator_,denominator_*a.denominator_);
   }
 
   public static Fraction subtract(Fraction a,Fraction b)
@@ -174,7 +183,7 @@ public final class Fraction extends Number implements Comparable<Fraction> {
 
   public void times(Fraction a)
   {
-    set(((long)numerator_)*((long)a.numerator_),((long)denominator_)*((long)a.denominator_));
+    set(numerator_*a.numerator_,denominator_*a.denominator_);
   }
 
   public static Fraction multiply(Fraction a,Fraction b)
@@ -186,7 +195,7 @@ public final class Fraction extends Number implements Comparable<Fraction> {
 
   public void divided_by(Fraction a)
   {
-    set(((long)numerator_)*((long)a.denominator_),((long)denominator_)*((long)a.numerator_));
+    set(numerator_*a.denominator_,denominator_*a.numerator_);
   }
 
   public static Fraction divide(Fraction a,Fraction b)
@@ -199,7 +208,7 @@ public final class Fraction extends Number implements Comparable<Fraction> {
   public void Round(int denom)
   {
     if(denom < denominator_)
-      set((long)Math.round((double)denom*(double)numerator_/(double)denominator_),(long)denom);
+      set((int)Math.round((double)denom*(double)numerator_/(double)denominator_),denom);
   }
 
   public double doubleValue()
@@ -209,12 +218,12 @@ public final class Fraction extends Number implements Comparable<Fraction> {
 
   public float floatValue()
   {
-    return ((float)numerator_)/((float)denominator_);
+    return (float)doubleValue();
   }
 
   public long longValue()
   {
-    return ((long)numerator_)/((long)denominator_);
+    return (long)doubleValue();
   }
 
   public int intValue()
@@ -229,7 +238,7 @@ public final class Fraction extends Number implements Comparable<Fraction> {
 
   public int compareTo(Fraction anotherFraction)
   {
-    return (int)(((long)numerator_)*((long)anotherFraction.denominator_) - ((long)anotherFraction.numerator_)*((long)denominator_));
+    return (int)(numerator_*anotherFraction.denominator_ - anotherFraction.numerator_*denominator_);
   }
 
   public static int compare(Fraction lhs,Fraction rhs)

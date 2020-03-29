@@ -12,7 +12,7 @@ using namespace std;
 #define TERMINAL_COLUMNS 50     // Columns in terminal -- used for displaying histogram
 
 #ifdef CALCULATE_LOOP_STATISTICS
-  extern int loops;
+  extern int nLoops;
 #endif
 
 struct statistics_t
@@ -96,9 +96,10 @@ statistics_t frequency_array_t::statistics() const
   s.median_=-1;
   for(i=cbegin();i!=cend();i++) {
     var+=(i->value-s.average_)*(i->value-s.average_)*i->frequency;
-    count += i->frequency;
-    if(s.median_ == -1 && count >= s.size_/2) {
-      s.median_=i->value;
+    if(s.median_ == -1) {
+      count += i->frequency;
+      if(count >= s.size_/2)
+        s.median_=i->value;
     }
   }
 
@@ -110,15 +111,15 @@ statistics_t frequency_array_t::statistics() const
 void frequency_array_t::display_graph(const string& xlabel,const string& ylabel) const
 {
   string histogram;
-  cout << endl << xlabel << "|           " << ylabel<<endl;
-  cout << "-----------------------------------------------------------------\n";
+  cout << endl << "  " << setw(5) << xlabel << "|           " << ylabel<<endl;
+  cout << "  -----------------------------------------------------------------\n";
   double scale=((double)TERMINAL_COLUMNS)/max_freq_;
   const_iterator i;
   for(i=cbegin();i<cend();i++) {
     histogram.clear();
     int height=round(i->frequency*scale);
     histogram.append(height,'#');
-    cout << setw(3) << i->value << "  |" << histogram << " " << i->frequency << endl;
+    cout << "  " << setw(4) << i->value << " |" << histogram << " " << i->frequency << endl;
   }
   cout << endl;
 }
@@ -126,32 +127,34 @@ void frequency_array_t::display_graph(const string& xlabel,const string& ylabel)
 void frequency_array_t::show_results(const string& heading,const string& xlabel) const
 {
   cout << endl << heading << endl;
-  cout << "Max " << xlabel << ": " << (*this)[size()-1].value << endl;
+  cout << "  Min " << xlabel << ": " << (*this)[0].value << endl;
+  cout << "  Max " << xlabel << ": " << (*this)[size()-1].value << endl;
   statistics_t stats=statistics();
 //  stats.calc(time_freq);
-  cout << "Sample size: " << stats.size() << endl;
-  cout << "Average: " << stats.average().to_mixed_s() << endl;
-  cout << "Median: " << stats.median() << endl;
-  cout << "Mode: " << stats.mode() << endl;
-  cout << "Standard Deviation: " << stats.standard_deviation().to_mixed_s() << endl;
+  cout << "  Sample size: " << stats.size() << endl;
+  cout << "  Average: " << stats.average().to_mixed_s() << endl;
+  cout << "  Median: " << stats.median() << endl;
+  cout << "  Mode: " << stats.mode() << endl;
+  cout << "  Standard Deviation: " << stats.standard_deviation().to_mixed_s() << endl;
   display_graph(xlabel,"Frequency");
 }
 
-#define diff_in_ms(start,end) \
-  ::round((((1000000000.0*end.tv_sec+end.tv_nsec) - (1000000000.0*start.tv_sec+start.tv_nsec))/100.0))
+// Diff in tens of nanoseconds
+#define diff_in_tns(start,end) \
+  ::round((((1000000000.0*end.tv_sec+end.tv_nsec) - (1000000000.0*start.tv_sec+start.tv_nsec))/10.0))
 
 void do_test(int denominator,frequency_array_t& time_freq,frequency_array_t& loop_freq)
 {
   int i;
   for(i=0;i<denominator;i++) {
     struct timespec start_time,end_time;
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start_time);
+    clock_gettime(CLOCK_MONOTONIC, &start_time);
     fraction_t(((double)i)/((double)denominator));
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end_time);
+    clock_gettime(CLOCK_MONOTONIC, &end_time);
     if(i>0) {
-      time_freq.increment(diff_in_ms(start_time,end_time));
+      time_freq.increment(diff_in_tns(start_time,end_time));
 #ifdef CALCULATE_LOOP_STATISTICS
-      loop_freq.increment(loops);
+      loop_freq.increment(nLoops);
 #endif
     }
   }
@@ -166,7 +169,7 @@ void single_test(int denominator)
   frequency_array_t loop_freq;
   do_test(denominator,time_freq,loop_freq);
   time_freq.sort();
-  time_freq.show_results("Time taken to convert floating point to faction (tims is in 100s of nanoseconds)","time");
+  time_freq.show_results("Time taken to convert floating point to faction (tims is in 10s of nanoseconds)","time");
 #ifdef CALCULATE_LOOP_STATISTICS
   loop_freq.sort();
   loop_freq.show_results("Number of interations to convert floating point to fraction","Loops");
@@ -198,7 +201,7 @@ void random_test(int min_tests)
     do_test(*i,time_freq,loop_freq);
   }
   time_freq.sort();
-  time_freq.show_results("Time taken to convert floating point to faction (tims is in 100s of nanoseconds)","time");
+  time_freq.show_results("Time taken to convert floating point to faction (tims is in 10s of nanoseconds)","time");
 #ifdef CALCULATE_LOOP_STATISTICS
   loop_freq.sort();
   loop_freq.show_results("Number of interations to convert floating point to fraction","Loops");

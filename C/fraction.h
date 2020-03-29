@@ -2,6 +2,7 @@
 #define __FRACTION_INCLUDED__
 
 #include <stdlib.h>
+#include <stdint.h>
 
 typedef struct fraction_s fraction_t;
 struct fraction_s
@@ -12,17 +13,17 @@ struct fraction_s
 /*
  * Find greatest common divisor
  */
-int64_t fraction_gcd(int64_t,int64_t);
+int fraction_gcd(int,int);
 
 /*
  * Set the numerator and denominator
  */
-void fraction_set(fraction_t*,int64_t,int64_t);
+void fraction_set(fraction_t*,int,int);
 
 /*
  * Set the numerator and denominator as mixed fraction, i.e. 3 1/2 -> set_mixed(f,3,1,2);
  */
-#define fraction_set_mixed(f,w,n,d) fraction_set(f,(int64_t)w*(int64_t)d+(w<0 ? -1 : 1)*n,d)
+#define fraction_set_mixed(f,w,n,d) fraction_set(f,(int)w*(int)d+(w<0 ? -1 : 1)*n,d)
 
 /*
  * Set the fraction using the double value

@@ -78,7 +78,6 @@ class FrequencyArray:
           stats.median=freq[0]
 
     stats.standard_deviation=math.sqrt(var/(stats.sample_size-1))
-    print("Max freq is ",self.maxFreq)
     return stats
 
   def DisplayGraph(self,xlabel,ylabel):
@@ -89,7 +88,7 @@ class FrequencyArray:
     print
 
   def ShowResult(self,heading,xlabel):
-    print("\n",heading)
+    print("\n{}".format(heading))
     freq = self.frequencies[0]
     print("  Min {}: {}".format(xlabel,freq[0]))
     freq = self.frequencies[len(self.frequencies)-1]

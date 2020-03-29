@@ -29,7 +29,7 @@ difference into a fraction and adding (or subtracting) to the current approximat
 a negative difference indicates a low approximation -- thus difference needs to be added to current approximation.
 The difference fraction is the numerator = 1 and denominator = 1/0.001176 = 850 -- difference in fraction from is 1/850.
 The new current approximation will be (1/17) + (1/850) = (850\*1 + 17\*1)/(850*17) = 867/14450.
-5. Repeat steps 2 to 4 until solution found.
+5. Repeat steps 2 through 4 until solution found.
 6. After solution found, the fraction is reduced.  For example, 867/14450 is exactly 0.06 and the iteration
 process is terminated.  867/14450 is reduced to 3/50.
 

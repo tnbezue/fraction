@@ -1,3 +1,20 @@
+/*
+		Copyright (C) 2019-2020  by Terry N Bezue
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #ifndef __FRACTION_INCLUDED__
 #define __FRACTION_INCLUDED__
 
@@ -8,6 +25,9 @@ class fraction_t {
   protected:
     int32_t numerator_;
     int32_t denominator_;
+
+    static int64_t gcd_internal(int64_t,int64_t);
+    void set_internal(int64_t,int64_t);
   public:
 
     /*
@@ -34,7 +54,7 @@ class fraction_t {
     /*
      * Create new fraction from mixed fraction values
     */
-    fraction_t(int32_t w,int32_t n,int32_t d) { set(w*d+n,d); }
+    fraction_t(int32_t w,int32_t n,int32_t d) { set(w,n,d); }
 
     /*
      *  Create new fraction using double value
@@ -44,12 +64,15 @@ class fraction_t {
     /*
      *  Set the numerator and denominator of fraction
     */
-    void set(int,int);
+    void set(int32_t n,int32_t d) { set_internal(static_cast<int64_t>(n),static_cast<int64_t>(d)); }
 
     /*
      * Set the fraction value from mixed fraction
     */
-    void set_mixed(int w,int n,int d) { set(w*d+(w<0 ? -1 : 1)*n,d); }
+    void set(int32_t w,int32_t n,int32_t d) {
+      set_internal(static_cast<int64_t>(w)*static_cast<int64_t>(d)+(w<0 ? -1 : 1)*static_cast<int64_t>(n),d);
+      //set(w*d+(w<0 ? -1 : 1)*n,d);
+    }
 
     /*
      * Get the value of numerator
@@ -75,7 +98,9 @@ class fraction_t {
      * Add fraction to this fraction
     */
     fraction_t& operator+=(const fraction_t& o) {
-      set(numerator_*o.denominator_ + o.numerator_*denominator_,denominator_*o.denominator_);
+      set_internal(static_cast<int64_t>(numerator_)*static_cast<int64_t>(o.denominator_)
+          + static_cast<int64_t>(o.numerator_)*static_cast<int64_t>(denominator_),
+          static_cast<int64_t>(denominator_)*static_cast<int64_t>(o.denominator_));
       return *this;
     }
 
@@ -83,7 +108,9 @@ class fraction_t {
      * Subtract fraction from this fraction
     */
     fraction_t& operator-=(const fraction_t& o) {
-      set(numerator_*o.denominator_ - o.numerator_*denominator_,denominator_*o.denominator_);
+      set_internal(static_cast<int64_t>(numerator_)*static_cast<int64_t>(o.denominator_)
+          - static_cast<int64_t>(o.numerator_)*static_cast<int64_t>(denominator_),
+          static_cast<int64_t>(denominator_)*static_cast<int64_t>(o.denominator_));
       return *this;
     }
 
@@ -91,7 +118,8 @@ class fraction_t {
      * Multiply this fraction by fraction
     */
     fraction_t& operator*=(const fraction_t& o) {
-      set(numerator_*o.numerator_,denominator_*o.denominator_);
+      set_internal(static_cast<int64_t>(numerator_)*static_cast<int64_t>(o.numerator_),
+          static_cast<int64_t>(denominator_)*static_cast<int64_t>(o.denominator_));
       return *this;
     }
 
@@ -99,15 +127,16 @@ class fraction_t {
      * Divide this fraction by fraction
     */
     fraction_t& operator/=(const fraction_t& o) {
-      set(numerator_*o.denominator_,denominator_*o.numerator_);
+      set_internal(static_cast<int64_t>(numerator_)*static_cast<int64_t>(o.denominator_),
+          static_cast<int64_t>(denominator_)*static_cast<int64_t>(o.numerator_));
       return *this;
     }
 
     /*
      * Round fraction.  Fraction is rounded such that new denominator is no larger than denom
     */
-    fraction_t& round(int denom);
-    fraction_t round(int denom) const { fraction_t f=*this; return f.round(denom); }
+    fraction_t& round(int32_t denom);
+    fraction_t round(int32_t denom) const { fraction_t f=*this; return f.round(denom); }
 
     /*
      * Absolute value
@@ -127,12 +156,20 @@ class fraction_t {
     /*
      * Greatest common divisor
     */
-    static int gcd(int,int);
+    static int32_t gcd(int32_t a,int32_t b) {
+      return static_cast<int32_t>(gcd_internal(static_cast<int64_t>(a),static_cast<int64_t>(b)));
+//      return gcd_internal(a,b);
+    }
 
     /*
      * Tolerance
     */
     static double epsilon;
+
+    /*
+     * Compares two fractions.  Return < 0 if lhs < rhs; 0 if lhs==rhs; > 0 if lhs > rhs
+    */
+    static int cmp(const fraction_t& lhs,const fraction_t& rhs);
 };
 
 
@@ -162,100 +199,94 @@ class fraction_t {
 
 
   /*
-   * Compares two fractions.  Return < 0 if lhs < rhs; 0 if lhs==rhs; > 0 if lhs > rhs
-  */
-  inline int fraction_cmp(const fraction_t& lhs,const fraction_t& rhs)
-    { return lhs.numerator()*rhs.denominator() - rhs.numerator()*lhs.denominator(); }
-
-  /*
    * Determines if lhs fraction equal to rhs fraction
   */
-  inline bool operator==(const fraction_t& lhs,const fraction_t& rhs) { return fraction_cmp(lhs,rhs)==0; }
+  inline bool operator==(const fraction_t& lhs,const fraction_t& rhs) { return fraction_t::cmp(lhs,rhs)==0; }
 
   /*
    * Determines if lhs fraction not equal to rhs fraction
   */
-  inline bool operator!=(const fraction_t& lhs,const fraction_t& rhs) { return fraction_cmp(lhs,rhs)!=0; }
+  inline bool operator!=(const fraction_t& lhs,const fraction_t& rhs) { return fraction_t::cmp(lhs,rhs)!=0; }
 
   /*
    * Determines if lhs fraction less than rhs fraction
   */
-  inline bool operator< (const fraction_t& lhs,const fraction_t& rhs) { return fraction_cmp(lhs,rhs)< 0; }
+  inline bool operator< (const fraction_t& lhs,const fraction_t& rhs) { return fraction_t::cmp(lhs,rhs)< 0; }
 
   /*
    * Determines if lhs fraction less than or equal to rhs fraction
   */
-  inline bool operator<=(const fraction_t& lhs,const fraction_t& rhs) { return fraction_cmp(lhs,rhs)<=0; }
+  inline bool operator<=(const fraction_t& lhs,const fraction_t& rhs) { return fraction_t::cmp(lhs,rhs)<=0; }
 
   /*
    * Determines if lhs fraction greater than rhs fraction
   */
-  inline bool operator> (const fraction_t& lhs,const fraction_t& rhs) { return fraction_cmp(lhs,rhs)> 0; }
+  inline bool operator> (const fraction_t& lhs,const fraction_t& rhs) { return fraction_t::cmp(lhs,rhs)> 0; }
 
   /*
    * Determines if lhs fraction greater than or equal to rhs fraction
   */
-  inline bool operator>=(const fraction_t& lhs,const fraction_t& rhs) { return fraction_cmp(lhs,rhs)>=0; }
+  inline bool operator>=(const fraction_t& lhs,const fraction_t& rhs) { return fraction_t::cmp(lhs,rhs)>=0; }
 
   /*
    * Determines if lhs fraction equal to rhs double value (double is converted to fraction for comparison)
   */
-  inline bool operator==(const fraction_t& lhs,double rhs) { return fraction_cmp(lhs,fraction_t(rhs))==0; }
+  inline bool operator==(const fraction_t& lhs,double rhs) { return fraction_t::cmp(lhs,fraction_t(rhs))==0; }
 
   /*
    * Determines if lhs fraction not equal to rhs double value (double is converted to fraction for comparison)
   */
-  inline bool operator!=(const fraction_t& lhs,double rhs) { return fraction_cmp(lhs,fraction_t(rhs))!=0; }
+  inline bool operator!=(const fraction_t& lhs,double rhs) { return fraction_t::cmp(lhs,fraction_t(rhs))!=0; }
 
   /*
    * Determines if lhs fraction less than rhs double value (double is converted to fraction for comparison)
   */
-  inline bool operator< (const fraction_t& lhs,double rhs) { return fraction_cmp(lhs,fraction_t(rhs))< 0; }
+  inline bool operator< (const fraction_t& lhs,double rhs) { return fraction_t::cmp(lhs,fraction_t(rhs))< 0; }
 
   /*
    * Determines if lhs fraction less than or equal to rhs double value (double is converted to fraction for comparison)
   */
-  inline bool operator<=(const fraction_t& lhs,double rhs) { return fraction_cmp(lhs,fraction_t(rhs))<=0; }
+  inline bool operator<=(const fraction_t& lhs,double rhs) { return fraction_t::cmp(lhs,fraction_t(rhs))<=0; }
 
   /*
    * Determines if lhs fraction greater than rhs double value (double is converted to fraction for comparison)
   */
-  inline bool operator> (const fraction_t& lhs,double rhs) { return fraction_cmp(lhs,fraction_t(rhs))> 0; }
+  inline bool operator> (const fraction_t& lhs,double rhs) { return fraction_t::cmp(lhs,fraction_t(rhs))> 0; }
 
   /*
    * Determines if lhs fraction greater than or equal to rhs double value (double is converted to fraction for comparison)
   */
-  inline bool operator>=(const fraction_t& lhs,double rhs) { return fraction_cmp(lhs,fraction_t(rhs))>=0; }
+  inline bool operator>=(const fraction_t& lhs,double rhs) { return fraction_t::cmp(lhs,fraction_t(rhs))>=0; }
 
   /*
    * Determines if lhs double value equal to rhs fraction (double is converted to fraction for comparison)
   */
-  inline bool operator==(double lhs,const fraction_t& rhs) { return fraction_cmp(fraction_t(lhs),rhs)==0; }
+  inline bool operator==(double lhs,const fraction_t& rhs) { return fraction_t::cmp(fraction_t(lhs),rhs)==0; }
 
   /*
    * Determines if lhs double value not equal to rhs fraction (double is converted to fraction for comparison)
   */
-  inline bool operator!=(double lhs,const fraction_t& rhs) { return fraction_cmp(fraction_t(lhs),rhs)!=0; }
+  inline bool operator!=(double lhs,const fraction_t& rhs) { return fraction_t::cmp(fraction_t(lhs),rhs)!=0; }
 
   /*
    * Determines if lhs double value less than rhs fraction (double is converted to fraction for comparison)
   */
-  inline bool operator< (double lhs,const fraction_t& rhs) { return fraction_cmp(fraction_t(lhs),rhs)< 0; }
+  inline bool operator< (double lhs,const fraction_t& rhs) { return fraction_t::cmp(fraction_t(lhs),rhs)< 0; }
 
   /*
    * Determines if lhs double value less than or equal to rhs fraction (double is converted to fraction for comparison)
   */
-  inline bool operator<=(double lhs,const fraction_t& rhs) { return fraction_cmp(fraction_t(lhs),rhs)<=0; }
+  inline bool operator<=(double lhs,const fraction_t& rhs) { return fraction_t::cmp(fraction_t(lhs),rhs)<=0; }
 
   /*
    * Determines if lhs double value greater than rhs fraction (double is converted to fraction for comparison)
   */
-  inline bool operator> (double lhs,const fraction_t& rhs) { return fraction_cmp(fraction_t(lhs),rhs)> 0; }
+  inline bool operator> (double lhs,const fraction_t& rhs) { return fraction_t::cmp(fraction_t(lhs),rhs)> 0; }
 
   /*
    * Determines if lhs double value greater than or equal to rhs fraction (double is converted to fraction for comparison)
   */
-  inline bool operator>=(double lhs,const fraction_t& rhs) { return fraction_cmp(fraction_t(lhs),rhs)>=0; }
+  inline bool operator>=(double lhs,const fraction_t& rhs) { return fraction_t::cmp(fraction_t(lhs),rhs)>=0; }
 
 
   /*

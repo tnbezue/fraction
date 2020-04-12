@@ -1,11 +1,28 @@
+/*
+		Copyright (C) 2019-2020  by Terry N Bezue
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include "fraction.hh"
 #include <cmath>
 
 double fraction_t::epsilon = 5e-6;
 
-int fraction_t::gcd(int a,int b)
+int64_t fraction_t::gcd_internal(int64_t a,int64_t b)
 {
-  int t;
+  int64_t t;
   while(b!=0) {
     t = b;
     b = a % b;
@@ -17,7 +34,7 @@ int fraction_t::gcd(int a,int b)
 /*
   Assignes to fraction.
 */
-void fraction_t::set(int n,int d)
+void fraction_t::set_internal(int64_t n,int64_t d)
 {
   // Negative sign should be in numerator
   if(d<0) {
@@ -26,8 +43,8 @@ void fraction_t::set(int n,int d)
   }
 
   // Reduce to lowest fraction
-  int divisor;
-  if((divisor=gcd(labs(n),d)) != 1) {
+  int64_t divisor;
+  if((divisor=gcd_internal(labs(n),d)) != 1) {
     n/=divisor;
     d/=divisor;
   }
@@ -75,8 +92,8 @@ fraction_t& fraction_t::operator=(double d)
 fraction_t& fraction_t::round(int denom)
 {
   if(denominator_ > denom)
-    set(static_cast<int>(::round(static_cast<double>(numerator_)*static_cast<double>(denom)
-          /static_cast<double>(denominator_))),static_cast<int>(denom));
+    set_internal(static_cast<int64_t>(::round(static_cast<double>(numerator_)*static_cast<double>(denom)
+          /static_cast<double>(denominator_))),static_cast<int64_t>(denom));
   return *this;
 }
 
@@ -91,16 +108,24 @@ std::string fraction_t::to_s() const
 
 std::string fraction_t::to_mixed_s() const
 {
+  if (denominator_ > numerator_)
+    return to_s();
   int whole=numerator_/denominator_;
-  if(whole != 0) {
-    char str[64];
-    int np=sprintf(str,"%d",whole);
-    int numerator=numerator_-whole*denominator_;
-    if(numerator != 0) {
-      numerator=::abs(numerator);
-      sprintf(str+np," %d/%d",numerator,denominator_);
-    }
-    return std::string(str);
+  char str[64];
+  int np=sprintf(str,"%d",whole);
+  int numerator=numerator_-whole*denominator_;
+  if(numerator != 0) {
+    numerator=::abs(numerator);
+    sprintf(str+np," %d/%d",numerator,denominator_);
   }
-  return to_s();
+  return std::string(str);
+}
+
+int fraction_t::cmp(const fraction_t& lhs,const fraction_t& rhs)
+{
+  int64_t a = static_cast<int64_t>(lhs.numerator_)*static_cast<int64_t>(rhs.denominator_);
+  int64_t b = static_cast<int64_t>(rhs.numerator_)*static_cast<int64_t>(lhs.denominator_);
+  if(a<b) return -1;
+  if(a>b) return 1;
+  return 0;
 }

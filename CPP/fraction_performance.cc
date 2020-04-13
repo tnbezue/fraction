@@ -15,6 +15,13 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+/*
+
+  By default, the Continued Fraction Method (https://en.wikipedia.org/wiki/Continued_fraction)
+  is used.  To use the original method:
+    make clean
+    CXXFLAGS=-DFRACTION_ORIGINAL_METHOD make
+*/
 #include <iostream>
 #include <vector>
 #include <string>
@@ -28,9 +35,7 @@ using namespace std;
 
 #define TERMINAL_COLUMNS 50     // Columns in terminal -- used for displaying histogram
 
-#ifdef CALCULATE_LOOP_STATISTICS
-  extern int nLoops;
-#endif
+extern int nLoops;
 
 struct statistics_t
 {
@@ -170,9 +175,7 @@ void do_test(int denominator,frequency_array_t& time_freq,frequency_array_t& loo
     clock_gettime(CLOCK_MONOTONIC, &end_time);
     if(i>0) {
       time_freq.increment(diff_in_tns(start_time,end_time));
-#ifdef CALCULATE_LOOP_STATISTICS
       loop_freq.increment(nLoops);
-#endif
     }
   }
 }
@@ -186,15 +189,9 @@ void single_test(int denominator)
   frequency_array_t loop_freq;
   do_test(denominator,time_freq,loop_freq);
   time_freq.sort();
-  time_freq.show_results("Time taken to convert floating point to faction (tims is in 10s of nanoseconds)","time");
-#ifdef CALCULATE_LOOP_STATISTICS
+  time_freq.show_results("Time taken to convert floating point to faction (time is in 10s of nanoseconds)","time");
   loop_freq.sort();
   loop_freq.show_results("Number of iterations to convert floating point to fraction","Loops");
-#else
-  cout << "\nStatistics for loop count not gathered. To enable loop statistics:\n";
-  cout << "  make clean\n";
-  cout << "  CXXFLAGS=-DCALCULATE_LOOP_STATISTICS make\n";
-#endif
 }
 
 void random_test(int min_tests)
@@ -218,15 +215,9 @@ void random_test(int min_tests)
     do_test(*i,time_freq,loop_freq);
   }
   time_freq.sort();
-  time_freq.show_results("Time taken to convert floating point to faction (tims is in 10s of nanoseconds)","time");
-#ifdef CALCULATE_LOOP_STATISTICS
+  time_freq.show_results("Time taken to convert floating point to faction (time is in 10s of nanoseconds)","time");
   loop_freq.sort();
   loop_freq.show_results("Number of iterations to convert floating point to fraction","Loops");
-#else
-  cout << "\nStatistics for loop count not gathered. To enable loop statistics:\n";
-  cout << "  make clean\n";
-  cout << "  CXXFLAGS=-DCALCULATE_LOOP_STATISTICS make\n";
-#endif
 }
 
 void syntax(const string& pgm)

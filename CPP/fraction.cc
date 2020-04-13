@@ -49,6 +49,19 @@ void fraction_t::set_internal(int64_t n,int64_t d)
     d/=divisor;
   }
 
+  // Result should fit in an integer value (only numerator should be negative)
+  int64_t max = labs(n) < d ? d : labs(n);
+  if(max > INT32_MAX) {
+    double scale=static_cast<double>(max)/static_cast<double>(INT32_MAX);
+    // To ensure below integer max, truncate rather than round
+    n=static_cast<int64_t>(static_cast<double>(n)/scale);
+    d=static_cast<int64_t>(static_cast<double>(d)/scale);
+    // May need to be reduced again
+    if((divisor=gcd_internal(labs(n),d)) != 1) {
+      n/=divisor;
+      d/=divisor;
+    }
+  }
   numerator_=n;
   denominator_=d;
 }
@@ -57,39 +70,7 @@ void fraction_t::set_internal(int64_t n,int64_t d)
 int nLoops;
 #endif
 
-#if 0
-fraction_t& fraction_t::operator=(double d)
-{
-  long hm2=0,hm1=1,km2=1,km1=0,h=0,k=0;
-  double v = d;
-#ifdef CALCULATE_LOOP_STATISTICS
-  nLoops=0;
-#endif
-  while(1) {
-    long a=v;
-    h=a*hm1 + hm2;
-    k=a*km1 + km2;
-//    printf("%lg %d %d %d %d %d %d %d\n",v,a,h,k,hm1,km1,hm2,km2);
-    if(fabs(d - (double)h/(double)k) < fraction_t::epsilon)
-      break;
-    v = 1.0/(v -a);
-    hm2=hm1;
-    hm1=h;
-    km2=km1;
-    km1=k;
-#ifdef CALCULATE_LOOP_STATISTICS
-    nLoops++;
-#endif
-  }
-  if(k<0) {
-    k=-k;
-    h=-h;
-  }
-  numerator_=h;
-  denominator_=k;
-  return *this;
-}
-#else
+#ifdef FRACTION_ORIGINAL_ALGORITHM
 fraction_t& fraction_t::operator=(double d)
 {
   int sign = d < 0 ? -1 : 1;
@@ -128,6 +109,38 @@ fraction_t& fraction_t::operator=(double d)
   set_internal(sign*(whole*denominator+numerator),denominator);
   return *this;
 }
+#else
+fraction_t& fraction_t::operator=(double d)
+{
+  long hm2=0,hm1=1,km2=1,km1=0,h=0,k=0;
+  double v = d;
+#ifdef CALCULATE_LOOP_STATISTICS
+  nLoops=0;
+#endif
+  while(1) {
+    long a=v;
+    h=a*hm1 + hm2;
+    k=a*km1 + km2;
+//    printf("%lg %d %d %d %d %d %d %d\n",v,a,h,k,hm1,km1,hm2,km2);
+    if(fabs(d - (double)h/(double)k) < fraction_t::epsilon)
+      break;
+    v = 1.0/(v -a);
+    hm2=hm1;
+    hm1=h;
+    km2=km1;
+    km1=k;
+#ifdef CALCULATE_LOOP_STATISTICS
+    nLoops++;
+#endif
+  }
+  if(k<0) {
+    k=-k;
+    h=-h;
+  }
+  numerator_=h;
+  denominator_=k;
+  return *this;
+}
 #endif
 
 fraction_t& fraction_t::round(int denom)
@@ -161,7 +174,7 @@ int fraction_t::cmp(const fraction_t& lhs,double d)
   double value=static_cast<double>(lhs);
   if(fabs(value-d)<epsilon) return 0;
   if(value < d) return -1;
-  return 0;
+  return 1;
 }
 
 std::string mixed_fraction_t::to_s() const

@@ -57,6 +57,7 @@ void fraction_t::set_internal(int64_t n,int64_t d)
 int nLoops;
 #endif
 
+#if 0
 fraction_t& fraction_t::operator=(double d)
 {
   long hm2=0,hm1=1,km2=1,km1=0,h=0,k=0;
@@ -88,6 +89,46 @@ fraction_t& fraction_t::operator=(double d)
   denominator_=k;
   return *this;
 }
+#else
+fraction_t& fraction_t::operator=(double d)
+{
+  int sign = d < 0 ? -1 : 1;
+  int64_t whole = labs(d);
+  double fract=fabs(d)-whole;
+  int64_t numerator=0;
+  int64_t denominator=1;
+#ifdef CALCULATE_LOOP_STATISTICS
+  nLoops=0;
+#endif
+  if(fract > epsilon) {
+    // Starting approximation is 1 for numerator and 1/fract for denominator
+    // For example, if converting 0.06 to fraction, 1/0.06 = 16.666666667
+    // So starting fraction is 1/17
+    numerator=1;
+    denominator=::round(1.0/fract);
+    while(true) {
+      // End if it's close enough to fract
+      double value=(double)numerator/(double)denominator;
+      double diff=value-fract;
+      if(fabs(diff) < epsilon)
+        break;
+#ifdef CALCULATE_LOOP_STATISTICS
+      nLoops++;
+#endif
+      // The desired fraction is current fraction (numerator/denominator) +/- the difference
+      // Convert difference to fraction in the same manner as starting approximation
+      // (numerator = 1 and denominator = 1/diff) and add to current fraction.
+      // numerator/denominator + 1/dd = (numerator*dd + denominator)/(denominator*dd)
+      int64_t dd;
+      dd=::round(fabs(1.0/diff));
+      numerator=numerator*dd+(diff < 0 ? 1 : -1)*denominator;
+      denominator*=dd;
+    }
+  }
+  set_internal(sign*(whole*denominator+numerator),denominator);
+  return *this;
+}
+#endif
 
 fraction_t& fraction_t::round(int denom)
 {
@@ -106,10 +147,27 @@ std::string fraction_t::to_s() const
   return std::string(str);
 }
 
-std::string fraction_t::to_mixed_s() const
+int fraction_t::cmp(const fraction_t& lhs,const fraction_t& rhs)
+{
+  int64_t a = static_cast<int64_t>(lhs.numerator_)*static_cast<int64_t>(rhs.denominator_);
+  int64_t b = static_cast<int64_t>(rhs.numerator_)*static_cast<int64_t>(lhs.denominator_);
+  if(a<b) return -1;
+  if(a>b) return 1;
+  return 0;
+}
+
+int fraction_t::cmp(const fraction_t& lhs,double d)
+{
+  double value=static_cast<double>(lhs);
+  if(fabs(value-d)<epsilon) return 0;
+  if(value < d) return -1;
+  return 0;
+}
+
+std::string mixed_fraction_t::to_s() const
 {
   if (denominator_ > numerator_)
-    return to_s();
+    return fraction_t::to_s();
   int whole=numerator_/denominator_;
   char str[64];
   int np=sprintf(str,"%d",whole);
@@ -119,13 +177,4 @@ std::string fraction_t::to_mixed_s() const
     sprintf(str+np," %d/%d",numerator,denominator_);
   }
   return std::string(str);
-}
-
-int fraction_t::cmp(const fraction_t& lhs,const fraction_t& rhs)
-{
-  int64_t a = static_cast<int64_t>(lhs.numerator_)*static_cast<int64_t>(rhs.denominator_);
-  int64_t b = static_cast<int64_t>(rhs.numerator_)*static_cast<int64_t>(lhs.denominator_);
-  if(a<b) return -1;
-  if(a>b) return 1;
-  return 0;
 }

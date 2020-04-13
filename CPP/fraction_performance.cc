@@ -40,8 +40,8 @@ struct statistics_t
   int median_;
   int mode_;
 
-  fraction_t average() const { fraction_t f(average_); f.round(100); return f; }
-  fraction_t standard_deviation() const { fraction_t f(standard_deviation_); f.round(100); return f; }
+  mixed_fraction_t average() const { mixed_fraction_t f(average_); f.round(100); return f; }
+  mixed_fraction_t standard_deviation() const { mixed_fraction_t f(standard_deviation_); f.round(100); return f; }
   size_t size() const { return size_; }
   int median() const { return median_; }
   int mode() const { return mode_; }
@@ -149,10 +149,10 @@ void frequency_array_t::show_results(const string& heading,const string& xlabel)
   statistics_t stats=statistics();
 //  stats.calc(time_freq);
   cout << "  Sample size: " << stats.size() << endl;
-  cout << "  Average: " << stats.average().to_mixed_s() << endl;
+  cout << "  Average: " << stats.average().to_s() << endl;
   cout << "  Median: " << stats.median() << endl;
   cout << "  Mode: " << stats.mode() << endl;
-  cout << "  Standard Deviation: " << stats.standard_deviation().to_mixed_s() << endl;
+  cout << "  Standard Deviation: " << stats.standard_deviation().to_s() << endl;
   display_graph(xlabel,"Frequency");
 }
 
@@ -189,7 +189,7 @@ void single_test(int denominator)
   time_freq.show_results("Time taken to convert floating point to faction (tims is in 10s of nanoseconds)","time");
 #ifdef CALCULATE_LOOP_STATISTICS
   loop_freq.sort();
-  loop_freq.show_results("Number of interations to convert floating point to fraction","Loops");
+  loop_freq.show_results("Number of iterations to convert floating point to fraction","Loops");
 #else
   cout << "\nStatistics for loop count not gathered. To enable loop statistics:\n";
   cout << "  make clean\n";
@@ -221,7 +221,7 @@ void random_test(int min_tests)
   time_freq.show_results("Time taken to convert floating point to faction (tims is in 10s of nanoseconds)","time");
 #ifdef CALCULATE_LOOP_STATISTICS
   loop_freq.sort();
-  loop_freq.show_results("Number of interations to convert floating point to fraction","Loops");
+  loop_freq.show_results("Number of iterations to convert floating point to fraction","Loops");
 #else
   cout << "\nStatistics for loop count not gathered. To enable loop statistics:\n";
   cout << "  make clean\n";

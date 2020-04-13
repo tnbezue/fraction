@@ -62,7 +62,7 @@ void test_set()
 void test_fraction_set_wnd()
 {
   TESTCASE("Fraction set WND");
-  fraction_t f;
+  mixed_fraction_t f;
 
   int set_test_data[][5]={ { -10,2,3,-32,3 }, {0,-2,3,-2,3}, {0,0,1,0,1}, {0,2,3,2,3}, {10,2,3,32,3}};
   int i,n = ARRAY_SIZE(set_test_data);

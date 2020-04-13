@@ -1,19 +1,15 @@
 
 TARGETS=test_fraction fraction_performance
 
-CC=${CXX}
+CXX=g++
 
 all: ${TARGETS}
 
-test_fraction: test_fraction.o fraction.o
+test_fraction: test_fraction.cc fraction.cc fraction.hh
+	${CXX} -o test_fraction ${CXXFLAGS} test_fraction.cc fraction.cc
 
-fraction_performance: fraction_performance.o fraction.o
-
-fraction.o: fraction.cc fraction.hh
-
-test_fraction.o: test_fraction.cc fraction.hh
-
-fraction_performance.o: fraction_performance.cc fraction.hh
+fraction_performance: fraction_performance.cc fraction.cc fraction.hh
+	${CXX} -o fraction_performance ${CXXFLAGS} -DCALCULATE_LOOP_STATISTICS fraction_performance.cc fraction.cc
 
 clean:
 	rm -f ${TARGETS} *.o

@@ -169,7 +169,7 @@ void test_fraction_eq_fraction()
   int i,n=ARRAY_SIZE(eq_data);
   for(i=0;i<n;i++) {
     ostringstream msg;
-    msg << '(' << eq_data[i][0] << ',' << eq_data[i][1] << ") == (" << eq_data[i][2] << ','
+    msg << '(' << eq_data[i][0] << '/' << eq_data[i][1] << ") == (" << eq_data[i][2] << '/'
           << eq_data[i][3] << ") - " << (eq_data[i][4] == 1 ? "true" : "false") << ends;
     S(f1,eq_data[i][0],eq_data[i][1]);
     S(f2,eq_data[i][2],eq_data[i][3]);
@@ -187,7 +187,7 @@ void test_fraction_ne_fraction()
   int i,n=ARRAY_SIZE(ne_data);
   for(i=0;i<n;i++) {
     ostringstream msg;
-    msg << '(' << ne_data[i][0] << ',' << ne_data[i][1] << ") != (" << ne_data[i][2] << ','
+    msg << '(' << ne_data[i][0] << '/' << ne_data[i][1] << ") != (" << ne_data[i][2] << '/'
           << ne_data[i][3] << ") - " << (ne_data[i][4] == 1 ? "true" : "false") << ends;
     S(f1,ne_data[i][0],ne_data[i][1]);
     S(f2,ne_data[i][2],ne_data[i][3]);
@@ -205,7 +205,7 @@ void test_fraction_lt_fraction()
   int i,n=ARRAY_SIZE(lt_data);
   for(i=0;i<n;i++) {
     ostringstream msg;
-    msg << '(' << lt_data[i][0] << ',' << lt_data[i][1] << ") < (" << lt_data[i][2] << ','
+    msg << '(' << lt_data[i][0] << '/' << lt_data[i][1] << ") < (" << lt_data[i][2] << '/'
           << lt_data[i][3] << ") - " << (lt_data[i][4] == 1 ? "true" : "false") << ends;
     S(f1,lt_data[i][0],lt_data[i][1]);
     S(f2,lt_data[i][2],lt_data[i][3]);
@@ -223,7 +223,7 @@ void test_fraction_le_fraction()
   int i,n=ARRAY_SIZE(le_data);
   for(i=0;i<n;i++) {
     ostringstream msg;
-    msg << '(' << le_data[i][0] << ',' << le_data[i][1] << ") <= (" << le_data[i][2] << ','
+    msg << '(' << le_data[i][0] << '/' << le_data[i][1] << ") <= (" << le_data[i][2] << '/'
           << le_data[i][3] << ") - " << (le_data[i][4] == 1 ? "true" : "false") << ends;
     S(f1,le_data[i][0],le_data[i][1]);
     S(f2,le_data[i][2],le_data[i][3]);
@@ -241,7 +241,7 @@ void test_fraction_gt_fraction()
   int i,n=ARRAY_SIZE(gt_data);
   for(i=0;i<n;i++) {
     ostringstream msg;
-    msg << '(' << gt_data[i][0] << ',' << gt_data[i][1] << ") > (" << gt_data[i][2] << ','
+    msg << '(' << gt_data[i][0] << '/' << gt_data[i][1] << ") > (" << gt_data[i][2] << '/'
           << gt_data[i][3] << ") - " << (gt_data[i][4] == 1 ? "true" : "false") << ends;
     S(f1,gt_data[i][0],gt_data[i][1]);
     S(f2,gt_data[i][2],gt_data[i][3]);
@@ -259,7 +259,7 @@ void test_fraction_ge_fraction()
   int i,n=ARRAY_SIZE(ge_data);
   for(i=0;i<n;i++) {
     ostringstream msg;
-    msg << '(' << ge_data[i][0] << ',' << ge_data[i][1] << ") >= (" << ge_data[i][2] << ','
+    msg << '(' << ge_data[i][0] << '/' << ge_data[i][1] << ") >= (" << ge_data[i][2] << '/'
           << ge_data[i][3] << ") - " << (ge_data[i][4] == 1 ? "true" : "false") << ends;
     S(f1,ge_data[i][0],ge_data[i][1]);
     S(f2,ge_data[i][2],ge_data[i][3]);
@@ -292,11 +292,11 @@ void test_fraction_eq_double()
 
   int i,n=ARRAY_SIZE(eq_data);
   for(i=0;i<n;i++) {
-    ostringstream msg;
-    msg << '(' << eq_data[i][0] << ',' << eq_data[i][1] << ") == (" << eq_data[i][2] << ','
-          << eq_data[i][3] << ") - " << (eq_data[i][4] == 1 ? "true" : "false") << ends;
-    S(f,eq_data[i][0],eq_data[i][1]);
     d=static_cast<double>(eq_data[i][2])/static_cast<double>(eq_data[i][3]);
+    S(f,eq_data[i][0],eq_data[i][1]);
+    ostringstream msg;
+    msg << '(' << eq_data[i][0] << '/' << eq_data[i][1] << ") == " << d
+        << " - " << (eq_data[i][4] == 1 ? "true" : "false") << ends;
     TEST(msg.str(),(f == d) == static_cast<bool>(eq_data[i][4]));
   }
 }
@@ -310,11 +310,11 @@ void test_fraction_ne_double()
 
   int i,n=ARRAY_SIZE(ne_data);
   for(i=0;i<n;i++) {
-    ostringstream msg;
-    msg << '(' << ne_data[i][0] << ',' << ne_data[i][1] << ") != (" << ne_data[i][2] << ','
-          << ne_data[i][3] << ") - " << (ne_data[i][4] == 1 ? "true" : "false") << ends;
     S(f,ne_data[i][0],ne_data[i][1]);
     d=static_cast<double>(ne_data[i][2])/static_cast<double>(ne_data[i][3]);
+    ostringstream msg;
+    msg << '(' << ne_data[i][0] << '/' << ne_data[i][1] << ") != " << d
+        << " - " << (ne_data[i][4] == 1 ? "true" : "false") << ends;
     TEST(msg.str(),(f != d) == static_cast<bool>(ne_data[i][4]));
   }
 }
@@ -328,11 +328,11 @@ void test_fraction_lt_double()
 
   int i,n=ARRAY_SIZE(lt_data);
   for(i=0;i<n;i++) {
-    ostringstream msg;
-    msg << '(' << lt_data[i][0] << ',' << lt_data[i][1] << ") < (" << lt_data[i][2] << ','
-          << lt_data[i][3] << ") - " << (lt_data[i][4] == 1 ? "true" : "false") << ends;
     S(f,lt_data[i][0],lt_data[i][1]);
     d=static_cast<double>(lt_data[i][2])/static_cast<double>(lt_data[i][3]);
+    ostringstream msg;
+    msg << '(' << lt_data[i][0] << ',' << lt_data[i][1] << ") < " << d
+          << " - " << (lt_data[i][4] == 1 ? "true" : "false") << ends;
     TEST(msg.str(),(f < d) == static_cast<bool>(lt_data[i][4]));
   }
 }
@@ -346,11 +346,11 @@ void test_fraction_le_double()
 
   int i,n=ARRAY_SIZE(le_data);
   for(i=0;i<n;i++) {
-    ostringstream msg;
-    msg << '(' << le_data[i][0] << ',' << le_data[i][1] << ") <= (" << le_data[i][2] << ','
-          << le_data[i][3] << ") - " << (le_data[i][4] == 1 ? "true" : "false") << ends;
     S(f,le_data[i][0],le_data[i][1]);
     d=static_cast<double>(le_data[i][2])/static_cast<double>(le_data[i][3]);
+    ostringstream msg;
+    msg << '(' << le_data[i][0] << ',' << le_data[i][1] << ") <= " << d
+          << " - " << (le_data[i][4] == 1 ? "true" : "false") << ends;
     TEST(msg.str(),(f <= d) == static_cast<bool>(le_data[i][4]));
   }
 }
@@ -364,11 +364,11 @@ void test_fraction_gt_double()
 
   int i,n=ARRAY_SIZE(gt_data);
   for(i=0;i<n;i++) {
-    ostringstream msg;
-    msg << '(' << gt_data[i][0] << ',' << gt_data[i][1] << ") > (" << gt_data[i][2] << ','
-          << gt_data[i][3] << ") - " << (gt_data[i][4] == 1 ? "true" : "false") << ends;
     S(f,gt_data[i][0],gt_data[i][1]);
     d=static_cast<double>(gt_data[i][2])/static_cast<double>(gt_data[i][3]);
+    ostringstream msg;
+    msg << '(' << gt_data[i][0] << ',' << gt_data[i][1] << ") > " << d
+          << " - " << (gt_data[i][4] == 1 ? "true" : "false") << ends;
     TEST(msg.str(),(f > d) == static_cast<bool>(gt_data[i][4]));
   }
 }
@@ -382,11 +382,11 @@ void test_fraction_ge_double()
 
   int i,n=ARRAY_SIZE(ge_data);
   for(i=0;i<n;i++) {
-    ostringstream msg;
-    msg << '(' << ge_data[i][0] << ',' << ge_data[i][1] << ") >= (" << ge_data[i][2] << ','
-          << ge_data[i][3] << ") - " << (ge_data[i][4] == 1 ? "true" : "false") << ends;
     S(f,ge_data[i][0],ge_data[i][1]);
     d=static_cast<double>(ge_data[i][2])/static_cast<double>(ge_data[i][3]);
+    ostringstream msg;
+    msg << '(' << ge_data[i][0] << ',' << ge_data[i][1] << ") >= " << d
+          << " - " << (ge_data[i][4] == 1 ? "true" : "false") << ends;
     TEST(msg.str(),(f >= d) == static_cast<bool>(ge_data[i][4]));
   }
 }

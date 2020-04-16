@@ -23,7 +23,7 @@ For example, when converting 0.06 to a fraction, the denominator = 1/0.06 = 16.6
 thus the initial approximation is 1/17.
 2. The difference between the floating point value and the the current approximation is computed.
 For the example, the difference is 1/17 - 0.06 = 0.058824 - 0.06 = -0.001176.
-3. If the difference is less than the defined tolerance (0.000005 by default), then the iteration is terminated.
+3. If the absolute value of the difference is less than the defined tolerance (0.000005 by default), then the iteration is terminated.
 4. Use the difference computed in step 2 to improve approximation of fraction. This is done by converting the
 difference into a fraction and adding (or subtracting) to the current approximation.  In the example,
 a negative difference indicates a low approximation -- thus difference needs to be added to current approximation.
@@ -41,22 +41,27 @@ converting 0.25 to fraction, the first approximation will be 1/4. Thus further i
 
 ## Updated Algorithm
 
-The above algorithm had two shortcomings.
+The above algorithm has two shortcomings.
 * Although algorithm converges quickly (2 or 3 iterations), finding the greatest common divisor for the numerator and denominator took longer
 * For a smaller tolerance, the numerator and denominator can be very large (to large for 32 bit)
 
 Due to these shortcomings, the algorithm was changed to the continued fraction method (https://en.wikipedia.org/wiki/Continued_fraction).
+On average, the continued fraction method is about 100 ns fastered than original algorithm.
 
 ## Performance
 
 For each language, a fraction performance program is provided.  It creates two frequency charts that
-evaluate the floating point to fraction routing.  Tne first chart is for time (in hundreds of nanoseconds)
+evaluate the floating point to fraction routine.  Tne first chart is for time (in hundreds of nanoseconds)
 and the second is for the number of iterations.
 
 Statistics can be gathered using a single denominator(N). Tests will be run from 1/N to (N-1)/N.
 Statistics can also be gathered using various random denominators.  For each random denominator,
 tests will be run from 1/N to (N-1)/N.  Use the "--help" option to get syntax.
 
+If it is desired to compare the algorithms, in the C and C++ versions, defining FRACTION_ORIGINAL_ALGORITHM will compile using the original algorithm.
+For example, in C++, use:
+    make clean
+    CPPFLAGG='-DFRACTION_ORIGINAL_ALGORITHM' make
 
 ## Notes
 * The default tolerance is 0.000005. If a smaller tolerance is used, then the number of iterations

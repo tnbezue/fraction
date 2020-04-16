@@ -62,7 +62,7 @@ If it is desired to compare the algorithms, in the C and C++ versions, defining 
 For example, in C++, use:
 
     make clean
-    CPPFLAGG='-DFRACTION_ORIGINAL_ALGORITHM' make
+    CPPFLAGS='-DFRACTION_ORIGINAL_ALGORITHM' make
 
 ## Notes
 * The default tolerance is 0.000005. If a smaller tolerance is used, then the number of iterations

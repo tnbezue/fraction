@@ -60,6 +60,7 @@ tests will be run from 1/N to (N-1)/N.  Use the "--help" option to get syntax.
 
 If it is desired to compare the algorithms, in the C and C++ versions, defining FRACTION_ORIGINAL_ALGORITHM will compile using the original algorithm.
 For example, in C++, use:
+
     make clean
     CPPFLAGG='-DFRACTION_ORIGINAL_ALGORITHM' make
 

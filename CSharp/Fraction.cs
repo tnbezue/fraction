@@ -227,6 +227,36 @@ public static int gcd(int a,int b)
     return cmp(lhs,rhs) >= 0;
   }
 
+  public static bool operator ==(Fraction lhs,double rhs)
+  {
+    return cmp(rhs,lhs) == 0;
+  }
+
+  public static bool operator !=(Fraction lhs,double rhs)
+  {
+    return cmp(rhs,lhs) != 0;
+  }
+
+  public static bool operator <(Fraction lhs,double rhs)
+  {
+    return cmp(rhs,lhs) > 0;
+  }
+
+  public static bool operator <=(Fraction lhs,double rhs)
+  {
+    return cmp(rhs,lhs) >= 0;
+  }
+
+  public static bool operator >(Fraction lhs,double rhs)
+  {
+    return cmp(rhs,lhs) < 0;
+  }
+
+  public static bool operator >=(Fraction lhs,double rhs)
+  {
+    return cmp(rhs,lhs) <= 0;
+  }
+
   public void Round(int denom)
   {
     Set((int)Math.Round((double)denom*(double)_numerator/(double)_denominator),denom);

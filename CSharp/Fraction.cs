@@ -187,6 +187,46 @@ public static int gcd(int a,int b)
     return cmp(lhs,rhs) >= 0;
   }
 
+  protected static int cmp(double lhs,Fraction rhs)
+  {
+    double rhs_as_d=(double)rhs;
+    if(Math.Abs(lhs-rhs_as_d) <= Fraction.epsilon)
+      return 0;
+    if(lhs < rhs_as_d)
+      return -1;
+    return 1;
+  }
+
+  public static bool operator ==(double lhs,Fraction rhs)
+  {
+    return cmp(lhs,rhs) == 0;
+  }
+
+  public static bool operator !=(double lhs,Fraction rhs)
+  {
+    return cmp(lhs,rhs) != 0;
+  }
+
+  public static bool operator <(double lhs,Fraction rhs)
+  {
+    return cmp(lhs,rhs) < 0;
+  }
+
+  public static bool operator <=(double lhs,Fraction rhs)
+  {
+    return cmp(lhs,rhs) <= 0;
+  }
+
+  public static bool operator >(double lhs,Fraction rhs)
+  {
+    return cmp(lhs,rhs) > 0;
+  }
+
+  public static bool operator >=(double lhs,Fraction rhs)
+  {
+    return cmp(lhs,rhs) >= 0;
+  }
+
   public void Round(int denom)
   {
     Set((int)Math.Round((double)denom*(double)_numerator/(double)_denominator),denom);

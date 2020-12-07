@@ -27,7 +27,7 @@ For the example, the difference is 1/17 - 0.06 = 0.058824 - 0.06 = -0.001176.
 4. Use the difference computed in step 2 to improve approximation of fraction. This is done by converting the
 difference into a fraction and adding (or subtracting) to the current approximation.  In the example,
 a negative difference indicates a low approximation -- thus difference needs to be added to current approximation.
-The difference fraction is the numerator = 1 and denominator = 1/0.001176 = 850 -- difference in fraction from is 1/850.
+The difference fraction is the numerator = 1 and denominator = 1/0.001176 = 850 -- difference in fraction form is 1/850.
 The new current approximation will be (1/17) + (1/850) = (850\*1 + 17\*1)/(850*17) = 867/14450.
 5. Repeat steps 2 through 4 until solution found.
 6. After solution found, the fraction is reduced.  For example, 867/14450 is exactly 0.06 and the iteration

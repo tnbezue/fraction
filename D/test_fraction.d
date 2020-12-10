@@ -29,23 +29,36 @@ void test_gcd()
 }
 
 void test_set() {
-  long[][] test_set_data =
-  [
-    [0L,1L,0L,1L],
-    [1L,-3L,-1L,3L],
-    [-1L,-3L,1L,3L],
-    [-6L,-8L,3L,4L],
-    [2L,4L,1L,2L],
-    [ 17179869183L,68719476736L, 536870912L,2147483647L ],
-    [ 68719476736L,17179869183L,2147483647L,536870912L ],
-    [ -17179869183L,68719476736L, -536870912L,2147483647L ],
-    [ -68719476736L,17179869183L,-2147483647L,536870912L ]
-  ];
-
+  version (USE_32_BIT_FRACTION) {
+    long[][] test_set_data =
+    [
+      [0L,1L,0L,1L],
+      [1L,-3L,-1L,3L],
+      [-1L,-3L,1L,3L],
+      [-6L,-8L,3L,4L],
+      [2L,4L,1L,2L],
+    ];
+  } else {
+    long[][] test_set_data =
+    [
+      [0L,1L,0L,1L],
+      [1L,-3L,-1L,3L],
+      [-1L,-3L,1L,3L],
+      [-6L,-8L,3L,4L],
+      [2L,4L,1L,2L],
+      [ 17179869182L,68719476736L,8589934591L, 34359738368L ],
+      [ 68719476736L,17179869183L, 68719476736L,17179869183L],
+      [ -17179869182L,68719476736L,  -8589934591L, 34359738368L],
+      [ -68719476736L,17179869183L, -68719476736L,17179869183L]
+    ];
+  }
+  stdout.writeln(fraction_numerator_denominator_t.max);
   th.TestCase("Fraction Set(n,d)");
   Fraction f=new Fraction;
   for(int i=0;i<test_set_data.length;i++) {
     f.set(test_set_data[i][0],test_set_data[i][1]);
+//    stdout.writeln(f);
+//    stdout.writeln(f.gcd(test_set_data[i][0],test_set_data[i][1]));
     th.Test(format("Set(%s,%s) = %s/%s",test_set_data[i][0],test_set_data[i][1],test_set_data[i][2],test_set_data[i][3]),
           f.numerator()==test_set_data[i][2] && f.denominator()==test_set_data[i][3]);
   }
@@ -62,7 +75,7 @@ void test_set_wnd() {
   ];
 
   th.TestCase("Fraction Set(w,n,d)");
-  Fraction f=new Fraction;
+  MixedFraction f=new MixedFraction;
 
   for(int i=0;i<test_set_wnd_data.length;i++) {
     f.set(test_set_wnd_data[i][0],test_set_wnd_data[i][1],test_set_wnd_data[i][2]);
@@ -105,12 +118,8 @@ void test_equality()
   for(int i=0;i<test_equality_data.length;i++) {
     f1.set(test_equality_data[i][0],test_equality_data[i][1]);
     f2.set(test_equality_data[i][2],test_equality_data[i][3]);
-    if(test_equality_data[i][4]==1)
-      th.Test(format(" (%s/%s == %s/%s)",test_equality_data[i][0],test_equality_data[i][1],test_equality_data[i][2],
-          test_equality_data[i][3]),f1==f2);
-    else
-      th.Test(format("!(%s/%s == %s/%s)",test_equality_data[i][0],test_equality_data[i][1],test_equality_data[i][2],
-          test_equality_data[i][3]),!(f1==f2));
+    th.Test(format(" (%s/%s) == (%s/%s)",test_equality_data[i][0],test_equality_data[i][1],test_equality_data[i][2],
+        test_equality_data[i][3]),(f1==f2),cast(bool)test_equality_data[i][4]);
   }
 }
 
@@ -131,12 +140,8 @@ void test_inequality()
   for(int i=0;i<test_inequality_data.length;i++) {
     f1.set(test_inequality_data[i][0],test_inequality_data[i][1]);
     f2.set(test_inequality_data[i][2],test_inequality_data[i][3]);
-    if(test_inequality_data[i][4]==1)
-      th.Test(format(" (%s/%s != %s/%s)",test_inequality_data[i][0],test_inequality_data[i][1],test_inequality_data[i][2],
-          test_inequality_data[i][3]),f1!=f2);
-    else
-      th.Test(format("!(%s/%s != %s/%s)",test_inequality_data[i][0],test_inequality_data[i][1],test_inequality_data[i][2],
-          test_inequality_data[i][3]),!(f1!=f2));
+    th.Test(format(" (%s/%s) != (%s/%s)",test_inequality_data[i][0],test_inequality_data[i][1],test_inequality_data[i][2],
+        test_inequality_data[i][3]),(f1!=f2),cast(bool)test_inequality_data[i][4]);
   }
 }
 
@@ -157,12 +162,8 @@ void test_less_than()
   for(int i=0;i<test_less_than_data.length;i++) {
     f1.set(test_less_than_data[i][0],test_less_than_data[i][1]);
     f2.set(test_less_than_data[i][2],test_less_than_data[i][3]);
-    if(test_less_than_data[i][4]==1)
-      th.Test(format(" (%s/%s < %s/%s)",test_less_than_data[i][0],test_less_than_data[i][1],test_less_than_data[i][2],
-          test_less_than_data[i][3]),f1<f2);
-    else
-      th.Test(format("!(%s/%s < %s/%s)",test_less_than_data[i][0],test_less_than_data[i][1],test_less_than_data[i][2],
-          test_less_than_data[i][3]),!(f1<f2));
+    th.Test(format(" (%s/%s) < (%s/%s)",test_less_than_data[i][0],test_less_than_data[i][1],test_less_than_data[i][2],
+        test_less_than_data[i][3]),(f1<f2),cast(bool)test_less_than_data[i][4]);
   }
 
 }
@@ -184,12 +185,8 @@ void test_less_than_equal()
   for(int i=0;i<test_less_than_equal_data.length;i++) {
     f1.set(test_less_than_equal_data[i][0],test_less_than_equal_data[i][1]);
     f2.set(test_less_than_equal_data[i][2],test_less_than_equal_data[i][3]);
-    if(test_less_than_equal_data[i][4]==1)
-      th.Test(format(" (%s/%s <= %s/%s)",test_less_than_equal_data[i][0],test_less_than_equal_data[i][1],test_less_than_equal_data[i][2],
-          test_less_than_equal_data[i][3]),f1<=f2);
-    else
-      th.Test(format("!(%s/%s <= %s/%s)",test_less_than_equal_data[i][0],test_less_than_equal_data[i][1],test_less_than_equal_data[i][2],
-          test_less_than_equal_data[i][3]),!(f1<=f2));
+    th.Test(format(" (%s/%s) <= (%s/%s)",test_less_than_equal_data[i][0],test_less_than_equal_data[i][1],test_less_than_equal_data[i][2],
+        test_less_than_equal_data[i][3]),(f1<=f2),cast(bool)test_less_than_equal_data[i][4]);
   }
 
 }
@@ -211,12 +208,8 @@ void test_greater_than()
   for(int i=0;i<test_greater_than_data.length;i++) {
     f1.set(test_greater_than_data[i][0],test_greater_than_data[i][1]);
     f2.set(test_greater_than_data[i][2],test_greater_than_data[i][3]);
-    if(test_greater_than_data[i][4]==1)
-      th.Test(format(" (%s/%s > %s/%s)",test_greater_than_data[i][0],test_greater_than_data[i][1],test_greater_than_data[i][2],
-          test_greater_than_data[i][3]),f1>f2);
-    else
-      th.Test(format("!(%s/%s > %s/%s)",test_greater_than_data[i][0],test_greater_than_data[i][1],test_greater_than_data[i][2],
-          test_greater_than_data[i][3]),!(f1>f2));
+    th.Test(format(" (%s/%s) > (%s/%s)",test_greater_than_data[i][0],test_greater_than_data[i][1],test_greater_than_data[i][2],
+        test_greater_than_data[i][3]),(f1>f2),cast(bool)test_greater_than_data[i][4]);
   }
 
 }
@@ -238,12 +231,8 @@ void test_greater_than_equal()
   for(int i=0;i<test_greater_than_equal_data.length;i++) {
     f1.set(test_greater_than_equal_data[i][0],test_greater_than_equal_data[i][1]);
     f2.set(test_greater_than_equal_data[i][2],test_greater_than_equal_data[i][3]);
-    if(test_greater_than_equal_data[i][4]==1)
-      th.Test(format(" (%s/%s >= %s/%s)",test_greater_than_equal_data[i][0],test_greater_than_equal_data[i][1],test_greater_than_equal_data[i][2],
-          test_greater_than_equal_data[i][3]),f1>=f2);
-    else
-      th.Test(format("!(%s/%s >= %s/%s)",test_greater_than_equal_data[i][0],test_greater_than_equal_data[i][1],test_greater_than_equal_data[i][2],
-          test_greater_than_equal_data[i][3]),!(f1>=f2));
+    th.Test(format(" (%s/%s) >= (%s/%s)",test_greater_than_equal_data[i][0],test_greater_than_equal_data[i][1],test_greater_than_equal_data[i][2],
+        test_greater_than_equal_data[i][3]),(f1>=f2),cast(bool)test_greater_than_equal_data[i][4]);
   }
 
 }
@@ -261,6 +250,267 @@ void test_cast_to_double()
     th.Test(format("%s/%s = %s",test_to_double_input[i][0],test_to_double_input[i][1],test_to_double_output[i]),
           fabs(cast(double)f - test_to_double_output[i]) < f.epsilon);
   }
+}
+
+void test_equal_to_double()
+{
+  int [][] test_equality_data = [
+    [0,1,0,1,1],
+    [0,1,1,2,0],
+    [2,3,-2,3,0],
+    [2,3,16,24,1],
+    [1,3,1,3,1],
+    [-5,7,25,35,0]
+  ];
+  th.TestCase("Fraction equal to double");
+  Fraction f=new Fraction;
+  double d;
+
+  for(int i=0;i<test_equality_data.length;i++) {
+    f.set(test_equality_data[i][0],test_equality_data[i][1]);
+    d=cast(double)test_equality_data[i][2]/cast(double)test_equality_data[i][3];
+    th.Test(format(" (%s/%s) == %s",test_equality_data[i][0],test_equality_data[i][1],d),f==d,cast(bool)test_equality_data[i][4]);
+  }
+}
+
+void test_not_equal_double()
+{
+  int [][] test_inequality_data = [
+    [0,1,0,1,0],
+    [0,1,1,2,1],
+    [2,3,-2,3,1],
+    [2,3,16,24,0],
+    [1,3,1,3,0],
+    [-5,7,25,35,1]
+  ];
+  th.TestCase("Fraction not equal double");
+  Fraction f=new Fraction;
+  double d;
+
+  for(int i=0;i<test_inequality_data.length;i++) {
+    f.set(test_inequality_data[i][0],test_inequality_data[i][1]);
+    d=cast(double)test_inequality_data[i][2]/cast(double)test_inequality_data[i][3];
+    th.Test(format(" (%s/%s) != %s",test_inequality_data[i][0],test_inequality_data[i][1],d),f!=d,cast(bool)test_inequality_data[i][4]);
+  }
+}
+
+void test_less_than_double()
+{
+  int [][] test_less_than_data = [
+    [0,1,0,1,0],
+    [0,1,1,2,1],
+    [2,3,-2,3,0],
+    [2,3,16,24,0],
+    [1,3,1,3,0],
+    [-5,7,25,35,1]
+  ];
+  th.TestCase("Fraction less than double");
+  Fraction f=new Fraction;
+  double d;
+
+  for(int i=0;i<test_less_than_data.length;i++) {
+    f.set(test_less_than_data[i][0],test_less_than_data[i][1]);
+    d=cast(double)test_less_than_data[i][2]/cast(double)test_less_than_data[i][3];
+    th.Test(format(" (%s/%s) < %s",test_less_than_data[i][0],test_less_than_data[i][1],d),f<d,cast(bool)test_less_than_data[i][4]);
+  }
+
+}
+
+void test_less_than_equal_double()
+{
+  int [][] test_less_than_equal_data = [
+    [0,1,0,1,1],
+    [0,1,1,2,1],
+    [2,3,-2,3,0],
+    [2,3,16,24,1],
+    [1,3,1,3,1],
+    [-5,7,25,35,1]
+  ];
+  th.TestCase("Fraction less than or equal to double");
+  Fraction f=new Fraction;
+  double d;
+
+  for(int i=0;i<test_less_than_equal_data.length;i++) {
+    f.set(test_less_than_equal_data[i][0],test_less_than_equal_data[i][1]);
+    d=cast(double)test_less_than_equal_data[i][2]/cast(double)test_less_than_equal_data[i][3];
+    if(test_less_than_equal_data[i][4]==1)
+    th.Test(format(" (%s/%s) <= %s",test_less_than_equal_data[i][0],test_less_than_equal_data[i][1],d),f<=d,cast(bool)test_less_than_equal_data[i][4]);
+  }
+
+}
+
+void test_greater_than_double()
+{
+  int [][] test_greater_than_data = [
+    [0,1,0,1,0],
+    [0,1,1,2,0],
+    [2,3,-2,3,1],
+    [2,3,16,24,0],
+    [1,3,1,3,0],
+    [-5,7,25,35,0]
+  ];
+  th.TestCase("Fraction greater than double");
+  Fraction f=new Fraction;
+  double d;
+
+  for(int i=0;i<test_greater_than_data.length;i++) {
+    f.set(test_greater_than_data[i][0],test_greater_than_data[i][1]);
+    d=cast(double)test_greater_than_data[i][2]/cast(double)test_greater_than_data[i][3];
+    th.Test(format(" (%s/%s) > %s",test_greater_than_data[i][0],test_greater_than_data[i][1],d),f>d,cast(bool)test_greater_than_data[i][4]);
+  }
+
+}
+
+void test_greater_than_equal_double()
+{
+  int [][] test_greater_than_equal_data = [
+    [0,1,0,1,1],
+    [0,1,1,2,0],
+    [2,3,-2,3,1],
+    [2,3,16,24,1],
+    [1,3,1,3,1],
+    [-5,7,25,35,0]
+  ];
+  th.TestCase("Fraction greater than or equal to double");
+  Fraction f=new Fraction;
+  double d;
+
+  for(int i=0;i<test_greater_than_equal_data.length;i++) {
+    f.set(test_greater_than_equal_data[i][0],test_greater_than_equal_data[i][1]);
+    d=cast(double)test_greater_than_equal_data[i][2]/cast(double)test_greater_than_equal_data[i][3];
+    th.Test(format(" (%s/%s) >= %s",test_greater_than_equal_data[i][0],test_greater_than_equal_data[i][1],d),f>=d,cast(bool)test_greater_than_equal_data[i][4]);
+  }
+
+}
+
+void test_double_equal_to_fraction()
+{
+  int [][] test_data = [
+    [0,1,0,1,1],
+    [0,1,1,2,0],
+    [2,3,-2,3,0],
+    [2,3,16,24,1],
+    [1,3,1,3,1],
+    [-5,7,25,35,0]
+  ];
+  th.TestCase("Fraction equal to double");
+  double d;
+  Fraction f=new Fraction;
+
+  for(int i=0;i<test_data.length;i++) {
+    d=cast(double)test_data[i][0]/cast(double)test_data[i][1];
+    f.set(test_data[i][2],cast(double)test_data[i][3]);
+    th.Test(format(" %s == (%s/%s)",d,test_data[i][2],test_data[i][3]),d==f,cast(bool)test_data[i][4]);
+  }
+}
+
+void test_double_not_equal_to_fraction()
+{
+  int [][] test_data = [
+    [0,1,0,1,0],
+    [0,1,1,2,1],
+    [2,3,-2,3,1],
+    [2,3,16,24,0],
+    [1,3,1,3,0],
+    [-5,7,25,35,1]
+  ];
+  th.TestCase("Fraction inequality");
+  double d;
+  Fraction f=new Fraction;
+
+  for(int i=0;i<test_data.length;i++) {
+    d=cast(double)test_data[i][0]/cast(double)test_data[i][1];
+    f.set(test_data[i][2],test_data[i][3]);
+    th.Test(format(" %s != (%s/%s)",d,test_data[i][2],test_data[i][3]),d!=f,cast(bool)test_data[i][4]);
+  }
+}
+
+void test_double_less_than_fraction()
+{
+  int [][] test_data = [
+    [0,1,0,1,0],
+    [0,1,1,2,1],
+    [2,3,-2,3,0],
+    [2,3,16,24,0],
+    [1,3,1,3,0],
+    [-5,7,25,35,1]
+  ];
+  th.TestCase("Less than");
+  double d;
+  Fraction f=new Fraction;
+
+  for(int i=0;i<test_data.length;i++) {
+    d = cast(double)test_data[i][0]/test_data[i][1];
+    f.set(test_data[i][2],test_data[i][3]);
+    th.Test(format(" %s < (%s/%s)",d,test_data[i][2],test_data[i][3]),d<f,cast(bool)test_data[i][4]);
+  }
+
+}
+
+void test_double_less_than_equal_fraction()
+{
+  int [][] test_data = [
+    [0,1,0,1,1],
+    [0,1,1,2,1],
+    [2,3,-2,3,0],
+    [2,3,16,24,1],
+    [1,3,1,3,1],
+    [-5,7,25,35,1]
+  ];
+  th.TestCase("Less than or equal");
+  double d;
+  Fraction f=new Fraction;
+
+  for(int i=0;i<test_data.length;i++) {
+    d=cast(double)test_data[i][0]/cast(double)test_data[i][1];
+    f.set(test_data[i][2],test_data[i][3]);
+    th.Test(format(" %s <= (%s/%s)",d,test_data[i][2],test_data[i][3]),d<=f,cast(bool)test_data[i][4]);
+  }
+
+}
+
+void test_double_greater_than_fraction()
+{
+  int [][] test_data = [
+    [0,1,0,1,0],
+    [0,1,1,2,0],
+    [2,3,-2,3,1],
+    [2,3,16,24,0],
+    [1,3,1,3,0],
+    [-5,7,25,35,0]
+  ];
+  th.TestCase("Greater than");
+  double d;
+  Fraction f=new Fraction;
+
+  for(int i=0;i<test_data.length;i++) {
+    d=cast(double)test_data[i][0]/cast(double)test_data[i][1];
+    f.set(test_data[i][2],test_data[i][3]);
+    th.Test(format(" %s > (%s/%s)",d,test_data[i][2],test_data[i][3]),d>f,cast(bool)test_data[i][4]);
+  }
+
+}
+
+void test_double_greater_than_equal_fraction()
+{
+  int [][] test_data = [
+    [0,1,0,1,1],
+    [0,1,1,2,0],
+    [2,3,-2,3,1],
+    [2,3,16,24,1],
+    [1,3,1,3,1],
+    [-5,7,25,35,0]
+  ];
+  th.TestCase("Greater than or equal");
+  double d;
+  Fraction f=new Fraction;
+
+  for(int i=0;i<test_data.length;i++) {
+    d=cast(double)test_data[i][0]/cast(double)test_data[i][1];
+    f.set(test_data[i][2],test_data[i][3]);
+    th.Test(format(" %s >= (%s/%s)",d,test_data[i][2],test_data[i][3]),d>=f,cast(bool)test_data[i][4]);
+  }
+
 }
 
 void test_fraction_addition()
@@ -374,6 +624,105 @@ void test_fraction_division()
   }
 }
 
+void test_double_plus_fraction()
+{
+  int [][] test_data =
+  [
+    [0,1,0,1,0,1],
+    [0,1,1,1,1,1],
+    [3,5,-2,9,17,45],
+    [-2,8,-6,8,-1,1],
+    [7,3,10,7,79,21],
+    [-5,7,25,35,0,1]
+  ];
+
+  th.TestCase("double plus fraction");
+  Fraction f=new Fraction;
+  double d,d2,expected_result;
+
+  for(int i=0;i<test_data.length;i++) {
+    d=cast(double)test_data[i][0]/cast(double)test_data[i][1];
+    f.set(test_data[i][2],test_data[i][3]);
+    expected_result=cast(double)test_data[i][4]/cast(double)test_data[i][5];
+    d2=d+f;
+    th.Test(format("%s + (%s/%s) = %s",d,test_data[i][2],test_data[i][3],expected_result),fabs(expected_result - d2) < f.epsilon);
+  }
+}
+
+void test_double_minus_fraction()
+{
+  int [][] test_data =
+  [
+    [0,1,0,1,0,1],
+    [0,1,1,1,-1,1],
+    [3,5,-2,9,37,45],
+    [-2,8,-6,8,1,2],
+    [7,3,10,7,19,21],
+    [-5,7,25,35,-10,7]
+  ];
+
+  th.TestCase("double minus fraction");
+  Fraction f=new Fraction;
+  double d,d2,expected_result;
+
+  for(int i=0;i<test_data.length;i++) {
+    d=cast(double)test_data[i][0]/cast(double)test_data[i][1];
+    f.set(test_data[i][2],test_data[i][3]);
+    expected_result=cast(double)test_data[i][4]/cast(double)test_data[i][5];
+    d2=d-f;
+    th.Test(format("%s - (%s/%s) = %s",d,test_data[i][2],test_data[i][3],expected_result),fabs(expected_result - d2) < f.epsilon);
+  }
+}
+
+void test_double_times_fraction()
+{
+  int [][] test_data =
+  [
+    [0,1,0,1,0,1],
+    [0,1,1,1,0,1],
+    [3,5,-2,9,-2,15],
+    [-2,8,-6,8,3,16],
+    [7,3,10,7,10,3],
+    [-5,7,25,35,-25,49]
+  ];
+
+  th.TestCase("double times fraction");
+  Fraction f=new Fraction;
+  double d,d2,expected_result;
+
+  for(int i=0;i<test_data.length;i++) {
+    d=cast(double)test_data[i][0]/cast(double)test_data[i][1];
+    f.set(test_data[i][2],test_data[i][3]);
+    expected_result=cast(double)test_data[i][4]/cast(double)test_data[i][5];
+    d2=d*f;
+    th.Test(format("%s * (%s/%s) = %s",d,test_data[i][2],test_data[i][3],expected_result),fabs(expected_result - d2) < f.epsilon);
+  }
+}
+
+void test_double_divided_by_fraction()
+{
+  int [][] test_data =
+  [
+    [0,1,1,1,0,1],
+    [3,5,-2,9,-27,10],
+    [-2,8,-6,8,1,3],
+    [7,3,10,7,49,30],
+    [-5,7,25,35,-1,1]
+  ];
+
+  th.TestCase("double divided by fraction");
+  Fraction f=new Fraction;
+  double d,d2,expected_result;
+
+  for(int i=0;i<test_data.length;i++) {
+    d=cast(double)test_data[i][0]/cast(double)test_data[i][1];
+    f.set(test_data[i][2],test_data[i][3]);
+    expected_result=cast(double)test_data[i][4]/cast(double)test_data[i][5];
+    d2=d/f;
+    th.Test(format("%s / (%s/%s) = %s",d,test_data[i][2],test_data[i][3],expected_result),fabs(expected_result - d2) < f.epsilon);
+  }
+}
+
 void test_assign_int()
 {
   int [][] assign_int_data =
@@ -425,13 +774,13 @@ void test_fraction_to_string_mixed()
 {
   int [][] fraction_to_string_mixed_input = [ [-503,50], [-3,50], [0,1], [3,50], [503,50]];
   string [] fraction_to_string_mixed_output = [ "-10 3/50", "-3/50" , "0", "3/50" , "10 3/50"];
-  Fraction f = new Fraction;
+  MixedFraction f = new MixedFraction;
   th.TestCase("Fraction toStringMixed");
 
   for(int i=0;i<fraction_to_string_mixed_input.length;i++) {
     f.set(fraction_to_string_mixed_input[i][0],fraction_to_string_mixed_input[i][1]);
-    th.Test(format("toStringMixed(%s/%s) = \"%s\"",fraction_to_string_mixed_input[i][0],fraction_to_string_mixed_input[i][1],
-          fraction_to_string_mixed_output[i]),f.toStringMixed()==fraction_to_string_mixed_output[i]);
+    th.Test(format("toString(%s/%s) = \"%s\"",fraction_to_string_mixed_input[i][0],fraction_to_string_mixed_input[i][1],
+          fraction_to_string_mixed_output[i]),f.toString()==fraction_to_string_mixed_output[i]);
   }
 }
 
@@ -469,16 +818,34 @@ void function() [] tests =
   &test_greater_than,
   &test_greater_than_equal,
   &test_cast_to_double,
+  &test_equal_to_double,
+  &test_not_equal_double,
+  &test_less_than_double,
+  &test_less_than_equal_double,
+  &test_greater_than_double,
+  &test_greater_than_equal_double,
+  &test_double_equal_to_fraction,
+  &test_double_not_equal_to_fraction,
+  &test_double_less_than_fraction,
+  &test_double_less_than_equal_fraction,
+  &test_double_greater_than_fraction,
+  &test_double_greater_than_equal_fraction,
   &test_fraction_addition,
   &test_fraction_subtraction,
   &test_fraction_multiplication,
   &test_fraction_division,
+  &test_double_plus_fraction,
+  &test_double_minus_fraction,
+  &test_double_times_fraction,
+  &test_double_divided_by_fraction,
   &test_assign_int,
   &test_assign_double,
   &test_fraction_to_string,
   &test_fraction_to_string_mixed,
   &test_fraction_round
 ];
+
+int indexex[32];
 
 void main(string args[])
 {

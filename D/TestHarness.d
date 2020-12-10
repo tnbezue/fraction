@@ -38,7 +38,7 @@ struct TestHarness {
     stdout.writeln(msg);
   }
 
-   void Test(string msg,bool condition)
+  static void Test(string msg,bool condition)
   {
     if(condition)
       nPass++;
@@ -46,4 +46,18 @@ struct TestHarness {
       nFail++;
     stdout.writeln(msg," ... ",(condition ? "Pass" : "Fail"));
   }
+
+  /*
+    Boolean testing.  Expected result is true or false.
+  */
+  static void Test(string msg,bool condition,bool expected_result)
+  {
+    bool pf = condition == expected_result;
+    if(pf)
+      nPass++;
+    else
+      nFail++;
+    stdout.writeln(msg," (", (expected_result ? "True" : "False"), ") ... ",(pf ? "Pass" : "Fail"));
+  }
+
 };

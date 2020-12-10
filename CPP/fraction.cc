@@ -49,7 +49,8 @@ void fraction_t::set_internal(int64_t n,int64_t d)
     d/=divisor;
   }
 
-  // Result should fit in an integer value (only numerator should be negative)
+#ifdef USE_32_BIT_FRACTION
+  // Result should fit in an integer value (only numerator will be negative)
   int64_t max = labs(n) < d ? d : labs(n);
   if(max > INT32_MAX) {
     double scale=static_cast<double>(max)/static_cast<double>(INT32_MAX);
@@ -62,8 +63,9 @@ void fraction_t::set_internal(int64_t n,int64_t d)
       d/=divisor;
     }
   }
-  numerator_=n;
-  denominator_=d;
+#endif
+  numerator_=static_cast<fraction_numerator_denominator_t>(n);
+  denominator_=static_cast<fraction_numerator_denominator_t>(d);;
 }
 
 #ifdef CALCULATE_LOOP_STATISTICS
@@ -137,13 +139,13 @@ fraction_t& fraction_t::operator=(double d)
     k=-k;
     h=-h;
   }
-  numerator_=h;
-  denominator_=k;
+  numerator_=static_cast<fraction_numerator_denominator_t>(h);
+  denominator_=static_cast<fraction_numerator_denominator_t>(k);
   return *this;
 }
 #endif
 
-fraction_t& fraction_t::round(int denom)
+fraction_t& fraction_t::round(fraction_numerator_denominator_t denom)
 {
   if(denominator_ > denom)
     set_internal(static_cast<int64_t>(::round(static_cast<double>(numerator_)*static_cast<double>(denom)

@@ -27,7 +27,13 @@ void test_fraction_set()
   fraction_t f;
 
   TESTCASE("Fraction set");
-  int set_test_data[][4]={ { 0,1,0,1 }, {1,1,1,1}, {-2,3,-2,3}, {2,-3,-2,3}, {-2,-3,2,3}, };
+  int set_test_data[][4]={
+    { 0,1,0,1 },
+    {1,1,1,1},
+    {-2,3,-2,3},
+    {2,-3,-2,3},
+    {-2,-3,2,3},
+    };
   int i,n = ARRAY_SIZE(set_test_data);
   char msg[64];
   for(i=0;i<n;i++) {
@@ -38,7 +44,7 @@ void test_fraction_set()
   }
 }
 
-void test_fraction_set_wnd()
+void test_fraction_set_mixed()
 {
   TESTCASE("Fraction set WND");
   fraction_t f;
@@ -263,6 +269,113 @@ void test_fraction_from_double()
   }
 }
 
+void test_fraction_eq_double()
+{
+  int eq_data[][5] = { { 0,1,0,1,1}, {0,1,1,2,0}, {2,3,-2,4,0}, {2,3,16,24,1}, {1,3,1,3,1},{-5,7,25,35,0}};
+  TESTCASE("Fraction Equal to double");
+  fraction_t f;
+  double d;
+
+  char msg[64];
+  int i,n=ARRAY_SIZE(eq_data);
+  for(i=0;i<n;i++) {
+    sprintf(msg,"(%d/%d) == (%d/%d) -- %s",eq_data[i][0],eq_data[i][1],eq_data[i][2],
+          eq_data[i][3],(eq_data[i][4] == 1 ? "true" : "false"));
+    S(f,eq_data[i][0],eq_data[i][1]);
+    d=(double)eq_data[i][2]/(double)eq_data[i][3];
+    TEST(msg,fraction_eq_double(f,d) == (eq_data[i][4] == 1));
+  }
+}
+
+void test_fraction_ne_double()
+{
+  int ne_data[][5] = { { 0,1,0,1,0}, {0,1,1,2,1}, {2,3,-2,4,1}, {2,3,16,24,0}, {1,3,1,3,0}, {-5,7,25,35,1}};
+  TESTCASE("Fraction not equal double");
+  fraction_t f;
+  double d;
+
+  char msg[64];
+  int i,n=ARRAY_SIZE(ne_data);
+  for(i=0;i<n;i++) {
+    sprintf(msg,"(%d/%d) != (%d/%d) -- %s",ne_data[i][0],ne_data[i][1],ne_data[i][2],
+          ne_data[i][3],(ne_data[i][4] == 1 ? "true" : "false"));
+    S(f,ne_data[i][0],ne_data[i][1]);
+    d=(double)ne_data[i][2]/(double)ne_data[i][3];
+    TEST(msg,fraction_ne_double(f,d) == (ne_data[i][4] == 1));
+  }
+}
+
+void test_fraction_lt_double()
+{
+  int lt_data[][5] = { { 0,1,0,1,0}, {0,1,1,2,1}, {2,3,-2,4,0}, {2,3,16,24,0}, {1,3,1,3,0}, {-5,7,25,35,1}};
+  TESTCASE("Fraction less than double");
+  fraction_t f;
+  double d;
+
+  char msg[64];
+  int i,n=ARRAY_SIZE(lt_data);
+  for(i=0;i<n;i++) {
+    sprintf(msg,"(%d/%d) < %lg -- %s",lt_data[i][0],lt_data[i][1],d,(lt_data[i][4] == 1 ? "true" : "false"));
+    S(f,lt_data[i][0],lt_data[i][1]);
+    d=(double)lt_data[i][2]/(double)lt_data[i][3];
+    TEST(msg,fraction_lt_double(f,d) == (lt_data[i][4] == 1));
+  }
+}
+
+void test_fraction_le_double()
+{
+  int le_data[][5] = { { 0,1,0,1,1}, {0,1,1,2,1}, {2,3,-2,4,0}, {2,3,16,24,1}, {1,3,1,3,1}, {-5,7,25,35,1}};
+  TESTCASE("Fraction less than or equal to double");
+  fraction_t f;
+  double d;
+
+  char msg[64];
+  int i,n=ARRAY_SIZE(le_data);
+  for(i=0;i<n;i++) {
+    sprintf(msg,"(%d/%d) <= (%d/%d) -- %s",le_data[i][0],le_data[i][1],le_data[i][2],
+          le_data[i][3],(le_data[i][4] == 1 ? "true" : "false"));
+    S(f,le_data[i][0],le_data[i][1]);
+    d=(double)le_data[i][2]/(double)le_data[i][3];
+    TEST(msg,fraction_le_double(f,d) == (le_data[i][4] == 1));
+  }
+}
+
+void test_fraction_gt_double()
+{
+  int gt_data[][5] = { { 0,1,0,1,0}, {0,1,1,2,0}, {2,3,-2,4,1}, {2,3,16,24,0}, {1,3,1,3,0}, {-5,7,25,35,0}};
+  TESTCASE("Fraction greater than double");
+  fraction_t f;
+  double d;
+
+  char msg[64];
+  int i,n=ARRAY_SIZE(gt_data);
+  for(i=0;i<n;i++) {
+    sprintf(msg,"(%d/%d) > (%d/%d) -- %s",gt_data[i][0],gt_data[i][1],gt_data[i][2],
+          gt_data[i][3],(gt_data[i][4] == 1 ? "true" : "false"));
+    S(f,gt_data[i][0],gt_data[i][1]);
+    d=(double)gt_data[i][2]/(double)gt_data[i][3];
+    TEST(msg,fraction_gt_double(f,d) == (gt_data[i][4] == 1));
+  }
+}
+
+void test_fraction_ge_double()
+{
+  int ge_data[][5] = { { 0,1,0,1,1}, {0,1,1,2,0}, {2,3,-2,4,1}, {2,3,16,24,1}, {1,3,1,3,1}, {-5,7,25,35,0}};
+  TESTCASE("Fraction greater than or equal to double");
+  fraction_t f;
+  double d;
+
+  char msg[64];
+  int i,n=ARRAY_SIZE(ge_data);
+  for(i=0;i<n;i++) {
+    sprintf(msg,"(%d/%d) <= (%d/%d) -- %s",ge_data[i][0],ge_data[i][1],ge_data[i][2],
+          ge_data[i][3],(ge_data[i][4] == 1 ? "true" : "false"));
+    S(f,ge_data[i][0],ge_data[i][1]);
+    d=(double)ge_data[i][2]/(double)ge_data[i][3];
+    TEST(msg,fraction_ge_double(f,d) == (ge_data[i][4] == 1));
+  }
+}
+
 void test_round()
 {
   int round_data[][5] = { {3333,10000,10,3,10}, {3333,10000,100,33,100},
@@ -285,7 +398,7 @@ test_function tests[] =
 {
   test_gcd,
   test_fraction_set,
-  test_fraction_set_wnd,
+  test_fraction_set_mixed,
   test_fraction_plus_fraction,
   test_fraction_minus_fraction,
   test_fraction_times_fraction,
@@ -297,6 +410,12 @@ test_function tests[] =
   test_fraction_gt_fraction,
   test_fraction_ge_fraction,
   test_fraction_from_double,
+  test_fraction_eq_double,
+  test_fraction_ne_double,
+  test_fraction_lt_double,
+  test_fraction_le_double,
+  test_fraction_gt_double,
+  test_fraction_ge_double,
   test_round,
 };
 

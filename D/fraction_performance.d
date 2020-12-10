@@ -16,13 +16,13 @@ struct Statistics {
     int median_;
     int mode_;
 
-    Fraction average() const
+    MixedFraction average() const
     {
-      return new Fraction(cast(double)(cast(int)(average_*100))/100.0);
+      return new MixedFraction(cast(double)(cast(int)(average_*100))/100.0);
     }
 
-    Fraction standardDeviation() const {
-      return new Fraction(cast(double)(cast(int)(standard_deviation_*10))/10.0);
+    MixedFraction standardDeviation() const {
+      return new MixedFraction(cast(double)(cast(int)(standard_deviation_*10))/10.0);
     }
     int sampleSize() const { return sampleSize_; }
     int median() const { return median_; }
@@ -114,10 +114,10 @@ struct FrequencyArray {
     stdout.writeln("  Max ",xlabel,": ",freq_[freq_.length-1].value);
     Statistics stats=stats();
     stdout.writeln("  Sample size: ",stats.sampleSize());
-    stdout.writeln("  Average: ",stats.average().toStringMixed());
+    stdout.writeln("  Average: ",stats.average().toString());
     stdout.writeln("  Median: ",stats.median());
     stdout.writeln("  Mode: ",stats.mode());
-    stdout.writeln("  Standard Deviation: ",stats.standardDeviation().toStringMixed());
+    stdout.writeln("  Standard Deviation: ",stats.standardDeviation().toString());
     displayGraph(xlabel,"Frequency");
   }
 

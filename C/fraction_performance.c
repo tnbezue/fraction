@@ -6,7 +6,9 @@
 #include <getopt.h>
 #include "fraction.h"
 
+#ifndef TERMINAL_COLUMNS
 #define TERMINAL_COLUMNS 50     // Columns in terminal -- used for displaying histogram
+#endif
 
 #ifdef CALCULATE_LOOP_STATISTICS
   extern int nLoops;

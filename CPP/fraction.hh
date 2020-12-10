@@ -21,10 +21,16 @@
 #include <iostream>
 #include <string>
 
+#ifdef USE_32_BIT_FRACTION
+typedef int32_t fraction_numerator_denominator_t;
+#else
+typedef int64_t fraction_numerator_denominator_t;
+#endif
+
 class fraction_t {
   protected:
-    int32_t numerator_;
-    int32_t denominator_;
+    fraction_numerator_denominator_t numerator_;
+    fraction_numerator_denominator_t denominator_;
 
     static int64_t gcd_internal(int64_t,int64_t);
     void set_internal(int64_t,int64_t);
@@ -49,12 +55,8 @@ class fraction_t {
     /*
      * Create new fraction using specified numerator and denominator
     */
-    fraction_t(int32_t n,int32_t d) { set(n,d); }
+    fraction_t(fraction_numerator_denominator_t n,fraction_numerator_denominator_t d) { set(n,d); }
 
-    /*
-     * Create new fraction from mixed fraction values
-    */
-//    fraction_t(int32_t w,int32_t n,int32_t d) { set(w,n,d); }
 
     /*
      *  Create new fraction using double value
@@ -64,25 +66,17 @@ class fraction_t {
     /*
      *  Set the numerator and denominator of fraction
     */
-    void set(int32_t n,int32_t d) { set_internal(static_cast<int64_t>(n),static_cast<int64_t>(d)); }
-
-    /*
-     * Set the fraction value from mixed fraction
-    */
-/*    void set(int32_t w,int32_t n,int32_t d) {
-      set_internal(static_cast<int64_t>(w)*static_cast<int64_t>(d)+(w<0 ? -1 : 1)*static_cast<int64_t>(n),d);
-      //set(w*d+(w<0 ? -1 : 1)*n,d);
-    }*/
+    void set(fraction_numerator_denominator_t n,fraction_numerator_denominator_t d) { set_internal(static_cast<int64_t>(n),static_cast<int64_t>(d)); }
 
     /*
      * Get the value of numerator
     */
-    int32_t numerator() const { return numerator_; }
+    fraction_numerator_denominator_t numerator() const { return numerator_; }
 
     /*
      * Get the value of the denominator
     */
-    int32_t denominator() const { return denominator_; }
+    fraction_numerator_denominator_t denominator() const { return denominator_; }
 
     /*
      * Return value of fraction as double value
@@ -135,8 +129,8 @@ class fraction_t {
     /*
      * Round fraction.  Fraction is rounded such that new denominator is no larger than denom
     */
-    fraction_t& round(int32_t denom);
-    fraction_t round(int32_t denom) const { fraction_t f=*this; return f.round(denom); }
+    fraction_t& round(fraction_numerator_denominator_t denom);
+    fraction_t round(fraction_numerator_denominator_t denom) const { fraction_t f=*this; return f.round(denom); }
 
     /*
      * Absolute value
@@ -156,8 +150,8 @@ class fraction_t {
     /*
      * Greatest common divisor
     */
-    static int32_t gcd(int32_t a,int32_t b) {
-      return static_cast<int32_t>(gcd_internal(static_cast<int64_t>(a),static_cast<int64_t>(b)));
+    static fraction_numerator_denominator_t gcd(fraction_numerator_denominator_t a,fraction_numerator_denominator_t b) {
+      return static_cast<fraction_numerator_denominator_t>(gcd_internal(static_cast<int64_t>(a),static_cast<int64_t>(b)));
 //      return gcd_internal(a,b);
     }
 
@@ -325,10 +319,13 @@ class fraction_t {
   */
   inline std::ostream& operator<<(std::ostream& o,const fraction_t& f) { o << f.to_s(); return o; }
 
+  /*
+   * Mixed fraction
+  */
   class mixed_fraction_t : public fraction_t {
     public:
       mixed_fraction_t() : fraction_t() { }
-      mixed_fraction_t(int32_t w,int32_t n,int32_t d) : fraction_t() { set(w,n,d); }
+      mixed_fraction_t(fraction_numerator_denominator_t w,fraction_numerator_denominator_t n,fraction_numerator_denominator_t d) : fraction_t() { set(w,n,d); }
       mixed_fraction_t(double d) : fraction_t(d) { }
 
       mixed_fraction_t(const mixed_fraction_t& f) { numerator_=f.numerator(); denominator_=f.denominator(); }
@@ -336,12 +333,14 @@ class fraction_t {
     /*
      * Set the fraction value from mixed fraction
     */
-    void set(int32_t w,int32_t n,int32_t d) {
+    void set(fraction_numerator_denominator_t w,fraction_numerator_denominator_t n,fraction_numerator_denominator_t d) {
       set_internal(static_cast<int64_t>(w)*static_cast<int64_t>(d)+(w<0 ? -1 : 1)*static_cast<int64_t>(n),d);
       //set(w*d+(w<0 ? -1 : 1)*n,d);
     }
 
     std::string to_s() const;
   };
+
+  inline std::ostream& operator<<(std::ostream& o,const mixed_fraction_t& f) { o << f.to_s(); return o; }
 
 #endif

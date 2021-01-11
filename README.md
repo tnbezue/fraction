@@ -11,7 +11,7 @@ fractions.  I ported it to a few languages. My results are presented here.
 and 0.33333333333 to 1/3)
 * Add, subtract, divide, and multiply fractions
 * Compare fractions (==, !=, <, <=, >, >=)
-* Support various languages (C, C++, C#, D, Java, Ruby)
+* Support various languages (Basic, C, C++, C#, D, Go, Lua, Java, Pascal, Perl, Python, Ruby)
 
 ## Algorithm
 
@@ -51,12 +51,11 @@ On average, the continued fraction method is about 100 ns fastered than original
 ## Performance
 
 For each language, a fraction performance program is provided.  It creates two frequency charts that
-evaluate the floating point to fraction routine.  Tne first chart is for time (in hundreds of nanoseconds)
-and the second is for the number of iterations.
+evaluate the floating point to fraction routine.  Tne first chart is for time (in 10s of nanoseconds)
+and the second is for the number of iterations taken to convert a floating point number to a fraction.
 
 Statistics can be gathered using a single denominator(N). Tests will be run from 1/N to (N-1)/N.
-Statistics can also be gathered using various random denominators.  For each random denominator,
-tests will be run from 1/N to (N-1)/N.  Use the "--help" option to get syntax.
+Statistics can also be gathered using various random floating point numbers.
 
 If it is desired to compare the algorithms, in the C and C++ versions, defining FRACTION_ORIGINAL_ALGORITHM will compile using the original algorithm.
 For example, in C++, use:

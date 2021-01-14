@@ -3,6 +3,7 @@ import sys
 import fraction
 import math
 import time
+import random
 
 class Statistics:
   sample_size = 0
@@ -35,7 +36,6 @@ class Statistics:
 
 class FrequencyArray:
   frequencies = []
-  maxFreq=0
 
   def __init__(self):
     self.frequencies = [] # Array of 2 item array.
@@ -60,11 +60,12 @@ class FrequencyArray:
   def Statistics(self):
     total=0
     stats = Statistics()
+    stats.mode = 0
     for freq in self.frequencies:
       stats.sample_size += freq[1]
       total += freq[0]*freq[1]
-      if freq[1] > self.maxFreq:
-        self.maxFreq=freq[1]
+      if freq[1] > stats.mode:
+        stats.mode=freq[1]
     stats.average = float(total)/float(stats.sample_size)
 
     var=0
@@ -80,9 +81,9 @@ class FrequencyArray:
     stats.standard_deviation=math.sqrt(var/(stats.sample_size-1))
     return stats
 
-  def DisplayGraph(self,xlabel,ylabel):
+  def DisplayGraph(self,xlabel,ylabel,maxFreq):
     print("\n  ",xlabel,"|              ",ylabel)
-    scale=50/self.maxFreq
+    scale=50/maxFreq
     for freq in self.frequencies:
       print(' ',freq[0],str('#'*int(scale*freq[1])),freq[1])
     print
@@ -99,26 +100,50 @@ class FrequencyArray:
     print("  Median:",stats.Median())
     print("  Mode:",stats.Mode())
     print("  Standard Deviation:",stats.StandardDeviation())
-    self.DisplayGraph(xlabel,"Frequency")
+    self.DisplayGraph(xlabel,"Frequency",stats.Mode())
 
 
-def DoTest(denominator,time_freq,loop_freq):
+def DoTest(value,time_freq,loop_freq):
   f = fraction.Fraction()
-  for i in range(denominator):
-    start=time.clock_gettime_ns(time.CLOCK_MONOTONIC)
-    f.set(i/denominator)
-    finish=time.clock_gettime_ns(time.CLOCK_MONOTONIC)
-    if i>0:
-      time_freq.increment(int((finish-start)/100))
-      loop_freq.increment(fraction.Fraction.Loops())
+  start=time.clock_gettime_ns(time.CLOCK_PROCESS_CPUTIME_ID)
+  for i in range(0,100):
+    f.set(value)
+  finish=time.clock_gettime_ns(time.CLOCK_PROCESS_CPUTIME_ID)
+  time_freq.increment(int((finish-start)/10/100))
+  loop_freq.increment(fraction.Fraction.Loops())
 
 def SingleTest(denominator):
   time_freq=FrequencyArray()
   loop_freq=FrequencyArray()
-  DoTest(denominator,time_freq,loop_freq)
+  for i in range(1,denominator):
+    DoTest(i/denominator,time_freq,loop_freq)
+  time_freq.Sort()
+  time_freq.ShowResult("Time","Time")
+  loop_freq.Sort();
+  loop_freq.ShowResult("Loops","Loops")
+
+def RandomTest(nTests):
+  random.seed(time.time())
+  time_freq=FrequencyArray()
+  loop_freq=FrequencyArray()
+  values = []
+  iTest=0
+  while iTest < nTests:
+    value = random.random()*random.randrange(1,100)
+    found = False
+    for val in values:
+      if abs(val - value) < 5e-6:
+        found = True
+        break
+    if not found:
+      values.append(value)
+      iTest+=1
+  for val in values:
+    DoTest(val,time_freq,loop_freq)
   time_freq.Sort()
   time_freq.ShowResult("Time","Time")
   loop_freq.Sort();
   loop_freq.ShowResult("Loops","Loops")
 
 SingleTest(1000)
+#RandomTest(1000)

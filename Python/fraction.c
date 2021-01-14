@@ -4,19 +4,36 @@
 #include <stdlib.h>
 
 #define CALCULATE_LOOP_STATISTICS 1
+#ifdef FRACTION_USE_32_BIT
+typedef int32_t fraction_numerator_denominator_t;
+#define THREE_INTEGERS "iii"
+#define TWO_INTEGERS "ii"
+#define ONE_INTEGER "i"
+#define PRIND  PRId32
+#define PYLONG_AS_LONG PyLong_AsLong
+#else
+typedef int64_t fraction_numerator_denominator_t;
+#define THREE_INTEGERS "LLL"
+#define TWO_INTEGERS "LL"
+#define ONE_INTEGER "L"
+#define PRIND  PRId64
+#define PYLONG_AS_LONG PyLong_AsLongLong
+#endif
+
 /*
   Internal methods
 */
 typedef struct {
   PyObject_HEAD
-  int numerator;
-  int denominator;
+  fraction_numerator_denominator_t numerator;
+  fraction_numerator_denominator_t denominator;
+//  double epsilon;
 } FractionObject;
 
 // Euclid's algorithm to find greatest common divisor
-int fraction_internal_gcd(register int a,register int b)
+int64_t fraction_internal_gcd(register int64_t a,register int64_t b)
 {
-  register int t;
+  register int64_t t;
   while(b!=0) {
     t = b;
     b = a % b;
@@ -28,14 +45,15 @@ int fraction_internal_gcd(register int a,register int b)
 static int cmp_fraction(FractionObject *lhs,FractionObject *rhs,int op)
 {
   int rc=0;
-  int temp = lhs->numerator*rhs->denominator - rhs->numerator*lhs->denominator;
+  int64_t a = lhs->numerator*rhs->denominator;
+  int64_t b = rhs->numerator*lhs->denominator;
   switch(op) {
-    case Py_LT: rc = temp < 0; break;
-    case Py_LE: rc = temp <= 0; break;
-    case Py_EQ: rc = temp == 0; break;
-    case Py_NE: rc = temp != 0; break;
-    case Py_GT: rc = temp > 0; break;
-    case Py_GE: rc = temp >= 0; break;
+    case Py_LT: rc = a  < b; break;
+    case Py_LE: rc = a <= b; break;
+    case Py_EQ: rc = a == b; break;
+    case Py_NE: rc = a != b; break;
+    case Py_GT: rc = a  > b; break;
+    case Py_GE: rc = a >= b; break;
   }
   return rc;
 }
@@ -46,76 +64,155 @@ static void fraction_internal_set_fraction(FractionObject* self,FractionObject* 
   self->denominator=other->denominator;
 }
 
-static void fraction_internal_set_num_denom(FractionObject* f,int n,int d)
+static void fraction_internal_set_num_denom(FractionObject* f,int64_t n,int64_t d)
 {
   if( d < 0) {
     n = -n;
     d = -d;
   }
-  int divisor = fraction_internal_gcd(abs(n),d);
-  f->numerator =  n/divisor;
-  f->denominator = d/divisor;
+  int divisor = fraction_internal_gcd(llabs(n),d);
+  if(divisor != 1) {
+    n /= divisor;
+    d /= divisor;
+  }
+
+#ifdef USE_32_BIT_FRACTION
+  // Result should fit in an 32 bit value (only numerator should be negative)
+  int64_t max = llabs(n) < d ? d : llabs(n);
+  if(max > INT32_MAX) {
+    double scale=(double)max/(double)INT32_MAX;
+    // To ensure below integer max, truncate rather than round
+    n=(int64_t)((double)n/scale);
+    d=(int64_t)((double)d/scale);
+    // May need to be reduced again
+    if((divisor=fraction_gcd_private(llabs(n),d)) != 1) {
+      n/=divisor;
+      d/=divisor;
+    }
+  }
+#endif
+  f->numerator =  n;
+  f->denominator = d;
 
 }
 
-static int fraction_internal_whitespace(const char* ptr)
+static int whitespace(const char* str)
 {
-  int n=0;
-  for(;*ptr && isspace(*ptr);ptr++,n++);
-  return n;
+  const char *ptr = str;
+  for(;isspace(*ptr); ptr++);
+  return ptr - str;
 }
 
-static int fraction_internal_digits(const char *ptr)
+static int digits(const char* str)
 {
-  int n=0;
-  for(;*ptr && isdigit(*ptr);ptr++,n++);
-  return n;
+  const char* ptr =str;
+  for(;isdigit(*ptr);ptr++);
+  return (ptr - str) ;
 }
 
-static int fraction_internal_is_fraction(const char* ptr,int test_for_sign)
+typedef struct {
+  double value;
+  int valid;
+} double_result_t;
+
+#define is_int(d) ((int64_t)d == d)
+#define signof(d) ((d) < 0 ? -1 : 1)
+
+static double_result_t is_number(const char* str)
 {
-  int n=fraction_internal_whitespace(ptr);
-  ptr+=n;
-  if(test_for_sign) {
+  double_result_t r={0,0};
+  char* ptr;
+  str+=whitespace(str);
+  if(*str != 0) {
+    r.value = strtod(str,&ptr);
+    if(ptr) {
+      ptr+=whitespace(ptr);
+      r.valid = *ptr == 0;
+    }
+  }
+  return r;
+}
+
+typedef struct {
+  int64_t numerator;
+  int64_t denominator;
+  int valid;
+} fraction_result_t;
+
+// (+=)? ( ( integer? integer/integer ) | ( integer (/ integer )? ) )
+static fraction_result_t is_fraction(const char* str)
+{
+  fraction_result_t r;
+  int is_valid_fraction=0;
+  int64_t w=0,n=0,d=1;
+  const char* ptr=str;
+  ptr+=whitespace(ptr);
+  if(*ptr != 0) {
+    const char* sign_ptr=ptr;
     if(*ptr == '+' || *ptr == '-')
       ptr++;
-  }
-  if((n=fraction_internal_digits(ptr))>0) {
-    ptr+=n;
-    if(*ptr == '/') {
-      ptr++;
-      if((n=fraction_internal_digits(ptr))>0) {
-        ptr+=n;
-        n=fraction_internal_whitespace(ptr);
-        if(*(ptr + n)==0)
-          return 1;
+    int ndigits;
+    if((ndigits=digits(ptr)) > 0) {
+      is_valid_fraction = 1;
+      n=atoll(sign_ptr);
+      ptr += ndigits;
+      if(*ptr == '/') {
+        is_valid_fraction=0;
+        ptr++;
+        sign_ptr=ptr;
+        if(*ptr == '+' || *ptr == '-')
+          ptr++;
+        if((ndigits=digits(ptr))>0) {
+          d=atoll(sign_ptr);
+          is_valid_fraction=1;
+          ptr+= ndigits;
+        }
+      } else {
+        ptr += whitespace(ptr);
+        sign_ptr=ptr;
+        if(*ptr == '+' || *ptr == '-')
+          ptr++;
+        if((ndigits=digits(ptr)) > 0) {
+          is_valid_fraction=0;
+          w=n;
+          n=atoll(sign_ptr);
+          ptr+=ndigits;
+          if(*ptr == '/') {
+            ptr++;
+            sign_ptr=ptr;
+            if(*ptr == '+' || *ptr == '-')
+              ptr++;
+            if((ndigits=digits(ptr))>0) {
+              d=atoll(sign_ptr);
+              is_valid_fraction=1;
+              ptr+= ndigits;
+            }
+          }
+        }
       }
     }
   }
-  return 0;
-}
-
-static int fraction_internal_is_mixed_fraction(const char* ptr)
-{
-  int n =fraction_internal_whitespace(ptr);
-  ptr+=n;
-  if(*ptr == '+' || *ptr == '-')
-    ptr++;
-  if((n=fraction_internal_digits(ptr))>0) {
-    ptr+=n;
-    return fraction_internal_is_fraction(ptr,0);
+  ptr += whitespace(ptr);
+  r.valid = *ptr == 0 && is_valid_fraction;
+  if(r.valid) {
+    int sign = signof(w)*signof(n)*signof(d);
+    w=llabs(w);
+    n=llabs(n);
+    d=llabs(d);
+    r.numerator = sign*(w*d + n);
+    r.denominator = d;
   }
-  return 0;
+  return r;
 }
 
-static double epsilon=5e-7;
+static double epsilon=5e-6;
 #ifdef CALCULATE_LOOP_STATISTICS
   int nLoops=0;
 #endif
 
 static void fraction_internal_set_float(FractionObject* f,double d)
 {
-  register int hm2=0,hm1=1,km2=1,km1=0,h=0,k=0;
+  register int64_t hm2=0,hm1=1,km2=1,km1=0,h=0,k=0;
   double v = d;
 #ifdef CALCULATE_LOOP_STATISTICS
   nLoops=0;
@@ -139,57 +236,59 @@ static void fraction_internal_set_float(FractionObject* f,double d)
     k=-k;
     h=-h;
   }
-  f->numerator=h;
-  f->denominator=k;
-
+  f->numerator=(fraction_numerator_denominator_t)h;
+  f->denominator=(fraction_numerator_denominator_t)k;
 }
 
 static void fraction_internal_add(FractionObject* result,FractionObject* lhs,FractionObject* rhs)
 {
-  fraction_internal_set_num_denom(result,lhs->numerator*rhs->denominator + lhs->denominator*rhs->numerator,
-        rhs->denominator*lhs->denominator);
+  fraction_internal_set_num_denom(result,
+        (int64_t)lhs->numerator*(int64_t)rhs->denominator + (int64_t)lhs->denominator*(int64_t)rhs->numerator,
+        (int64_t)rhs->denominator*(int64_t)lhs->denominator);
 }
 
 static void fraction_internal_subtract(FractionObject* result,FractionObject* lhs,FractionObject* rhs)
 {
-  fraction_internal_set_num_denom(result,lhs->numerator*rhs->denominator - lhs->denominator*rhs->numerator,
-        rhs->denominator*lhs->denominator);
+  fraction_internal_set_num_denom(result,
+        (int64_t)lhs->numerator*(int64_t)rhs->denominator - (int64_t)lhs->denominator*(int64_t)rhs->numerator,
+        (int64_t)rhs->denominator*(int64_t)lhs->denominator);
 }
 
 static void fraction_internal_multiply(FractionObject* result,FractionObject* lhs,FractionObject* rhs)
 {
-  fraction_internal_set_num_denom(result,lhs->numerator*rhs->numerator,rhs->denominator*lhs->denominator);
+  fraction_internal_set_num_denom(result,
+        (int64_t)lhs->numerator*(int64_t)rhs->numerator,(int64_t)rhs->denominator*(int64_t)lhs->denominator);
 }
 
 static void fraction_internal_divide(FractionObject* result,FractionObject* lhs,FractionObject* rhs)
 {
-  fraction_internal_set_num_denom(result,lhs->numerator*rhs->denominator,lhs->denominator*rhs->numerator);
+  fraction_internal_set_num_denom(result,
+        (int64_t)lhs->numerator*(int64_t)rhs->denominator,(int64_t)lhs->denominator*(int64_t)rhs->numerator);
 }
 
 static PyObject* fraction_gcd(PyObject* self,PyObject *args)
 {
-  int n1,n2;
-  if(PyArg_ParseTuple(args,"ii",&n1,&n2))
-    return PyLong_FromLong(fraction_internal_gcd(n1,n2));
+  fraction_numerator_denominator_t n1,n2;
+  if(PyArg_ParseTuple(args,TWO_INTEGERS,&n1,&n2))
+    return PyLong_FromLongLong(fraction_internal_gcd((int64_t)n1,(int64_t)n2));
   return 0;
 }
 
 static PyObject* fraction_set(PyObject* self,PyObject* args)
 {
-  int num,denom,whole;
+  fraction_numerator_denominator_t num,denom,whole;
   double dbl;
   char* str;
-  char* endptr;
   /* Try three integers. */
-  if(PyArg_ParseTuple(args,"iii",&whole,&num,&denom)) {
+  if(PyArg_ParseTuple(args,THREE_INTEGERS,&whole,&num,&denom)) {
     fraction_internal_set_num_denom((FractionObject*)self,whole*denom+(whole < 0 ? -1 : 1)*num,denom);
   } else {
     PyErr_Clear();
-    if(PyArg_ParseTuple(args,"ii",&num,&denom)) {
-      fraction_internal_set_num_denom((FractionObject*)self,num,denom);
+    if(PyArg_ParseTuple(args,TWO_INTEGERS,&num,&denom)) {
+      fraction_internal_set_num_denom((FractionObject*)self,(int64_t)num,(int64_t)denom);
     } else {
       PyErr_Clear();
-      if(PyArg_ParseTuple(args,"i",&num)) {
+      if(PyArg_ParseTuple(args,ONE_INTEGER,&num)) {
         fraction_internal_set_num_denom((FractionObject*)self,num,1);
       } else {
         PyErr_Clear();
@@ -198,17 +297,13 @@ static PyObject* fraction_set(PyObject* self,PyObject* args)
         } else {
           PyErr_Clear();
           if(PyArg_ParseTuple(args,"s",&str)) {
-            if(fraction_internal_is_mixed_fraction(str)) {
-              sscanf(str,"%d %d/%d",&whole,&num,&denom);
-              fraction_internal_set_num_denom((FractionObject*)self,whole*denom+(whole < 0 ? -1 : 1)*num,denom);
-            } else if(fraction_internal_is_fraction(str,1)) {
-              sscanf(str,"%d/%d",&num,&denom);
-              fraction_internal_set_num_denom((FractionObject*)self,num,denom);
+            fraction_result_t fr = is_fraction(str);
+            if(fr.valid) {
+              fraction_internal_set_num_denom((FractionObject*)self,fr.numerator,fr.denominator);
             } else {
-              dbl = strtod(str,&endptr);
-              num=fraction_internal_whitespace(endptr);
-              if(*(endptr+num)==0) {
-                fraction_internal_set_float((FractionObject*)self,dbl);
+              double_result_t dr = is_number(str);
+              if(dr.valid) {
+                fraction_internal_set_float((FractionObject*)self,dr.value);
               } else { /* Error */
               }
             }
@@ -224,18 +319,18 @@ static PyTypeObject FractionType;
 
 static PyObject* fraction_round(PyObject* self,PyObject* args[],int nArgs)
 {
-  int denom=-1;
+  fraction_numerator_denominator_t denom=-1;
   char err_msg[256];
   err_msg[0]=0;
   FractionObject* result = PyObject_New(FractionObject,&FractionType);
 
   if(nArgs == 1) {
     if(PyFloat_CheckExact(args[0])) {
-      denom = (int)round(PyFloat_AsDouble(args[0]));
+      denom = (fraction_numerator_denominator_t)round(PyFloat_AsDouble(args[0]));
     } else if(PyLong_CheckExact(args[0])) {
-      denom = PyLong_AsLong(args[0]);
+      denom = PYLONG_AS_LONG(args[0]);
     } else {
-      sprintf(err_msg,"round takes an integer or floating point argument - '%s' specified.",args[0]->ob_type->tp_name);
+      sprintf(err_msg,"round() takes an integer or floating point argument - '%s' specified.",args[0]->ob_type->tp_name);
       PyErr_SetString(PyExc_TypeError,err_msg);
     }
   } else {
@@ -249,10 +344,49 @@ static PyObject* fraction_round(PyObject* self,PyObject* args[],int nArgs)
     } else
       fraction_internal_set_fraction(result,fself);
   } else if(err_msg[0] == 0) {
-    sprintf(err_msg,"round expects a value greater than 1 (got %d)",denom);
+    sprintf(err_msg,"round expects a value greater than 1 (got % " PRIND ")",denom);
     PyErr_SetString(PyExc_ValueError,err_msg);
   }
   return (PyObject*)result;
+}
+
+static PyObject* fraction_abs(PyObject* self)
+{
+  FractionObject* result = PyObject_New(FractionObject,&FractionType);
+
+  FractionObject* fself=(FractionObject*)self;
+  fraction_internal_set_num_denom(result,llabs(fself->numerator),fself->denominator);
+  return (PyObject*)result;
+}
+
+static PyObject* fraction_negative(PyObject* self)
+{
+  FractionObject* result = PyObject_New(FractionObject,&FractionType);
+
+  FractionObject* fself=(FractionObject*)self;
+  fraction_internal_set_num_denom(result,-fself->numerator,fself->denominator);
+  return (PyObject*)result;
+}
+
+static PyObject* fraction_positive(PyObject* self)
+{
+  FractionObject* result = PyObject_New(FractionObject,&FractionType);
+
+  FractionObject* fself=(FractionObject*)self;
+  fraction_internal_set_num_denom(result,fself->numerator,fself->denominator);
+  return (PyObject*)result;
+}
+
+static PyObject* fraction_float(PyObject* self)
+{
+  FractionObject* fself=(FractionObject*)self;
+  return (PyObject*)PyFloat_FromDouble((double)fself->numerator/(double)fself->denominator);
+}
+
+static PyObject* fraction_int(PyObject* self)
+{
+  FractionObject* fself=(FractionObject*)self;
+  return (PyObject*)PyLong_FromLong(fself->numerator/fself->denominator);
 }
 
 static PyObject* fraction_add(PyObject* self,PyObject* other)
@@ -264,7 +398,7 @@ static PyObject* fraction_add(PyObject* self,PyObject* other)
   } else if(PyFloat_CheckExact(other)) {
     fraction_internal_set_float(f,PyFloat_AsDouble(other));
   } else if(PyLong_CheckExact(other)) {
-    fraction_internal_set_num_denom(f,PyLong_AsLong(other),1);
+    fraction_internal_set_num_denom(f,PYLONG_AS_LONG(other),1);
   }
   fraction_internal_add(result,(FractionObject*)self,f);
   Py_DECREF(f);
@@ -361,6 +495,7 @@ static PyMethodDef Fraction_methods[] = {
   { "gcd", fraction_gcd, METH_STATIC|METH_VARARGS, "Computes greatest common divisor"},
   { "set", fraction_set, METH_VARARGS, "Sets value of fraction"},
   { "round", (PyCFunction) fraction_round, METH_FASTCALL, "Rounds fraction" },
+  { "abs",  (PyCFunction) fraction_abs, METH_FASTCALL, "Absolute value of fraction" },
   { "to_mixed_string", (PyCFunction) fraction_to_mixed_string,METH_NOARGS, "Fraction represented as mixed fraction"},
   { "epsilon", (PyCFunction) fraction_epsilon,METH_STATIC|METH_FASTCALL, "Gets/sets epsilon"},
 #ifdef CALCULATE_LOOP_STATISTICS
@@ -408,6 +543,11 @@ static PyNumberMethods fraction_number_methods = {
   .nb_subtract = fraction_subtract,
   .nb_multiply = fraction_multiply,
   .nb_true_divide = fraction_divide,
+  .nb_absolute = fraction_abs,
+  .nb_negative = fraction_negative,
+  .nb_positive = fraction_positive,
+  .nb_float = fraction_float,
+  .nb_int = fraction_int,
 };
 
 static PyTypeObject FractionType = {
@@ -430,7 +570,7 @@ static PyTypeObject FractionType = {
 static PyModuleDef fractionmodule = {
     PyModuleDef_HEAD_INIT,
     .m_name = "fraction",
-    .m_doc = "Example module that creates an extension type.",
+    .m_doc = "Fraction.",
     .m_size = -1,
 };
 
@@ -444,14 +584,13 @@ PyInit_fraction(void)
         return NULL;
 
     m = PyModule_Create(&fractionmodule);
-    if (m == NULL)
-        return NULL;
-
-    Py_INCREF(&FractionType);
-    if (PyModule_AddObject(m, "Fraction", (PyObject *) &FractionType) < 0) {
-        Py_DECREF(&FractionType);
-        Py_DECREF(m);
-        return NULL;
+    if (m != NULL) {
+      Py_INCREF(&FractionType);
+      if (PyModule_AddObject(m, "Fraction", (PyObject *) &FractionType) < 0) {
+          Py_DECREF(&FractionType);
+          Py_DECREF(m);
+          return NULL;
+      }
     }
     return m;
 }

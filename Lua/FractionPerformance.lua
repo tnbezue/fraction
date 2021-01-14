@@ -169,8 +169,12 @@ function RandomTest(nTests)
   loop_freq:show_results("Number of iterations to convert floating point to fraction","Loops")
 end
 
+function syntax()
+end
+
 local singleTestDenominator = 0
 local randomNTest = 0
+local needHelp = false
 local params = {...}
 local nparams = #params
 if(nparams > 0) then

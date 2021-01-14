@@ -1,4 +1,4 @@
-/*
+ /*
 		Copyright (C) 2019-2020  by Terry N Bezue
 
     This program is free software: you can redistribute it and/or modify
@@ -35,6 +35,8 @@ extern "C"
 #if defined (__cplusplus)
 }
 #endif
+
+#include "utils.h"
 
 typedef struct fraction_s fraction_t;
 struct fraction_s
@@ -163,14 +165,14 @@ void fraction_set_double(fraction_t* f,double value,double fraction_epsilon)
 
 static const char* Fraction_metatable="Fraction_metatable";
 static const char* MixedFraction_metatable="MixedFraction_metatable";
-//const char* #define Fractionlib_metatable "Fractionlib_metatable"
 static const char* fraction_type = "Fraction";
 static const char* mixedfraction_type = "MixedFraction";
+
 // Utilities
 static int space(const char* str)
 {
   const char *ptr = str;
-  for(;isspace(*ptr); ptr++);
+  for(;*ptr == ' '; ptr++);
   return ptr - str;
 }
 
@@ -189,6 +191,7 @@ typedef struct {
 #define is_int(d) ((int64_t)d == d)
 #define signof(d) ((d) < 0 ? -1 : 1)
 
+// Determine if value given in string is a floating point number
 static double_result_t is_number(const char* str)
 {
   double_result_t r={0,0};
@@ -210,7 +213,8 @@ typedef struct {
   int valid;
 } fraction_result_t;
 
-// (+=)? ( ( integer? integer/integer ) | ( integer (/ integer )? ) )
+// Determine if value in string is a fraction
+// ( (+-)? integer? (+-)? integer/(+-)? integer ) | ( (+-)? integer (/ (+-)? integer )? )
 static fraction_result_t is_fraction(const char* str)
 {
   fraction_result_t r;
@@ -280,8 +284,7 @@ static double get_epsilon(lua_State *L)
 {
   double epsilon;
   lua_getglobal(L,fraction_type);
-  lua_pushstring(L,"epsilon");
-  lua_rawget(L,-2);
+  lua_getfield(L,-1,"epsilon");
   epsilon = lua_tonumber(L,-1);
   lua_pop(L,2);
   return epsilon;
@@ -290,8 +293,8 @@ static double get_epsilon(lua_State *L)
 static int Fraction_gcd(lua_State* L)
 {
   int top=lua_gettop(L);
-  // If top == 2, then called as Fraction.gcd(a,b)
-  // If top == 3, then called as Fraction:gcd(a,b)
+  // If top == 2, assume called as Fraction.gcd(a,b)
+  // If top == 3, assume called as Fraction:gcd(a,b)
   // Otherwise error
   if(top == 2 || top == 3) {
     lua_pushinteger(L,fraction_gcd_private(luaL_checkinteger(L,-2),luaL_checkinteger(L,-1)));
@@ -300,11 +303,14 @@ static int Fraction_gcd(lua_State* L)
   return 1;
 }
 
+// Determines if value at index is a standard fraction or mixed fraction
 fraction_t* testfraction(lua_State* L,int index)
 {
   fraction_t* f = NULL;
   if((f=(fraction_t*)luaL_testudata(L,index,Fraction_metatable)) == NULL)
     f=(fraction_t*)luaL_testudata(L,index,MixedFraction_metatable);
+  if(!f)
+    puts("Not a fraction");
   return f;
 }
 
@@ -321,8 +327,10 @@ static int get_fraction_metatable(lua_State* L,int index)
   return 0;
 }
 
-// Create a fraction from the metatable at index. If from != Null, copy values from it
-static fraction_t* create_fraction(lua_State* L,int index,fraction_t* from)
+// Create a fraction and assign the metatable on top of stack. Remove metatable from stack
+// and return newly created fraction on top of stack.
+// If from is defined, then copy numerator and denominator from it
+static fraction_t* create_fraction(lua_State* L,fraction_t* from)
 {
   fraction_t *f = (fraction_t *)lua_newuserdata(L, sizeof(fraction_t));
   if(from == NULL) {
@@ -345,7 +353,7 @@ static fraction_t* copy_fraction(lua_State* L,int index)
   fraction_t* fnew=NULL;
   if(from) {
     lua_getmetatable(L,index);
-    fnew = create_fraction(L,-1,from);
+    fnew = create_fraction(L,from);
   }
   return fnew;
 }
@@ -369,6 +377,7 @@ static fraction_t value_to_fraction(lua_State* L, int index)
   return f;
 }
 
+// Convert fraction to a number
 static double fraction_to_value(lua_State* L,int index)
 {
   double d=0;
@@ -380,13 +389,25 @@ static double fraction_to_value(lua_State* L,int index)
     }
   } else if(arg_type == LUA_TNUMBER) {
     d = lua_tonumber(L,index);
+  } /* else { // Error
   }
+  */
   return d;
 }
 
+// set the value of the fraction
+// Arguments can be:
+//     nothing -- set's default values, i.e. Fraction:new()
+//     a single number -- converted to a fraction, i.e Fraction:new(12.7)
+//     a single string -- can be floating point or fraction, i.e Fraction("1 1/2")
+//     another fraction -- numerator and denominators , i.e. Fraction:new(otherFraction)
+//     two integers -- specifies numerator and denominator, i.e. Fraction:new(3,7)
+//     three integer -- specifies mixed fraction (whole, numerator, denominator), i.e. Fraction:new(3,1,2)
+//     a table containing any of the above. i.e Fraction:new({3,7})
 static int Fraction_set(lua_State* L)
 {
   // Check if fraction
+  stackTrace(L,"Set -- Begin");
   fraction_t* f = testfraction(L,1);
   if(f) {
     fraction_t* other;
@@ -497,12 +518,7 @@ static int Fraction_set(lua_State* L)
   return 0;
 }
 
-/*
-  For a userdata type, the __index method is always called.  If a c cfunction is returned
-  as a value, that function is then called. So the index method
-*/
-// All entries should be same length
-
+// Absolute value of fraction
 static int Fraction_abs(lua_State* L)
 {
   fraction_t *fnew = copy_fraction(L,1);
@@ -515,10 +531,11 @@ static int Fraction_abs(lua_State* L)
   return 1;
 }
 
+// Round fraction to new denominator
 static int Fraction_round(lua_State* L)
 {
   fraction_t *fnew = copy_fraction(L,1);
-  if(fnew) {  // Should have two arguments, fraction and integer
+  if(fnew) {
     lua_Integer new_d = llabs(luaL_checkinteger(L,2)); // Just in case it was negative
     if(new_d < fnew->denominator_) {
       fraction_set_private(fnew,(int64_t)round((double)fnew->numerator_*(double)new_d/(double)fnew->denominator_),
@@ -530,6 +547,8 @@ static int Fraction_round(lua_State* L)
   return 1;
 }
 
+// Add two fractions or one fraction to number
+// Whichever is specified first will be the type returned
 static int Fraction_add(lua_State *L)
 {
   fraction_t a = value_to_fraction(L,1);
@@ -540,11 +559,12 @@ static int Fraction_add(lua_State *L)
     lua_pushnumber(L,(double)a.numerator_/(double)a.denominator_);
   } else { // Assume its a fraction
     lua_getmetatable(L,1);
-    create_fraction(L,1,&a);
+    create_fraction(L,&a);
   }
   return 1;
 }
 
+// Subtract fractions
 static int Fraction_sub(lua_State *L)
 {
   fraction_t a = value_to_fraction(L,1);
@@ -555,11 +575,12 @@ static int Fraction_sub(lua_State *L)
     lua_pushnumber(L,(double)a.numerator_/(double)a.denominator_);
   } else { // Assume its a fraction
     lua_getmetatable(L,1);
-    create_fraction(L,1,&a);
+    create_fraction(L,&a);
   }
   return 1;
 }
 
+// Multiply fractions
 static int Fraction_mul(lua_State *L)
 {
   // one of these has to be a fraction. Get the type of one of them
@@ -571,11 +592,12 @@ static int Fraction_mul(lua_State *L)
     lua_pushnumber(L,(double)a.numerator_/(double)a.denominator_);
   } else { // Assume its a fraction
     lua_getmetatable(L,1);
-    create_fraction(L,1,&a);
+    create_fraction(L,&a);
   }
   return 1;
 }
 
+// Divide fractions
 static int Fraction_div(lua_State *L)
 {
   // one of these has to be a fraction. Get the type of one of them
@@ -587,11 +609,12 @@ static int Fraction_div(lua_State *L)
     lua_pushnumber(L,(double)a.numerator_/(double)a.denominator_);
   } else { // Assume its a fraction
     lua_getmetatable(L,1);
-    create_fraction(L,1,&a);
+    create_fraction(L,&a);
   }
   return 1;
 }
 
+// Integer (or floor) division
 static int Fraction_idiv(lua_State *L)
 {
   // one of these has to be a fraction. Get the type of one of them
@@ -605,11 +628,13 @@ static int Fraction_idiv(lua_State *L)
     lua_pushinteger(L,a.numerator_);
   } else { // Assume its a fraction
     lua_getmetatable(L,1);
-    create_fraction(L,1,&a);
+    create_fraction(L,&a);
   }
   return 1;
 }
 
+// Raise fraction to a power -- either base or exponent can be a fraction
+// Type of base is the return type
 static int Fraction_pow(lua_State *L)
 {
   double result;
@@ -630,14 +655,13 @@ static int Fraction_pow(lua_State *L)
     lua_pushnumber(L,result);
   } else { // It's a fraction
     get_fraction_metatable(L,1);
-    fraction_t* f = create_fraction(L,1,NULL);
+    fraction_t* f = create_fraction(L,NULL);
     fraction_set_double(f,result,get_epsilon(L));
-  }/* else {
-    luaL_error(L,"Invalid type for power");
-  }*/
+  }
   return 1;
 }
 
+// Unary minus
 static int Fraction_unm(lua_State *L)
 {
   fraction_t* f=copy_fraction(L,1);
@@ -645,6 +669,7 @@ static int Fraction_unm(lua_State *L)
   return 1;
 }
 
+// equality
 static int Fraction_eq(lua_State *L)
 {
   fraction_t a = value_to_fraction(L,1);
@@ -653,6 +678,7 @@ static int Fraction_eq(lua_State *L)
   return 1;
 }
 
+// less than comparison
 static int Fraction_lt(lua_State *L)
 {
   fraction_t a = value_to_fraction(L,1);
@@ -661,6 +687,7 @@ static int Fraction_lt(lua_State *L)
   return 1;
 }
 
+// less than or equal
 static int Fraction_le(lua_State *L)
 {
   fraction_t a = value_to_fraction(L,1);
@@ -669,6 +696,7 @@ static int Fraction_le(lua_State *L)
   return 1;
 }
 
+// Convert fraction to string
 static int Fraction_tostring(lua_State *L)
 {
   fraction_t *f = (fraction_t *)luaL_checkudata(L, 1,Fraction_metatable );
@@ -680,13 +708,15 @@ static int Fraction_tostring(lua_State *L)
   return 1;
 }
 
-static int Fraction_tonumber  (lua_State *L)
+// Convert fraction to number
+static int Fraction_tonumber(lua_State *L)
 {
   fraction_t* f = testfraction(L,1);
   lua_pushnumber(L,(double)f->numerator_/(double)f->denominator_);
   return 1;
 }
 
+// Convert a mixed fraction to a string
 static int MixedFraction_tostring(lua_State *L)
 {
   fraction_t *f = (fraction_t *)luaL_checkudata(L, 1,MixedFraction_metatable );
@@ -705,7 +735,7 @@ static int MixedFraction_tostring(lua_State *L)
   return 1;
 }
 
-
+// Fraction index method
 static int Fraction_index(lua_State *L)
 {
   fraction_t* f=testfraction(L,1);
@@ -729,16 +759,18 @@ static int Fraction_index(lua_State *L)
   if zero args, it was called as Fraction.new()
   if one args,
 */
-static int Fraction_new (lua_State *L) {
+static int Fraction_new(lua_State *L) {
   // Must be called with (Mixed)Fraction:new(args)
-  // First argument will be metatable
+  // First argument will be Fraction lib
+  stackTrace(L,"New -- Begin");
   int nargs = lua_gettop(L);
-  if(nargs > 0) {
+  luaL_getmetatable(L,Fraction_metatable);
+  stackTrace(L,"New -- After getmetatable");
+  create_fraction(L,NULL);
+  if(nargs > 1) {
     // Call set with same arguments to set numerator, denominator
     nargs--;
     int arg_pos=2;
-    luaL_getmetatable(L,Fraction_metatable);
-    create_fraction(L,1,NULL);
     if(nargs > 0) {
       lua_pushcfunction(L,Fraction_set);
       lua_pushvalue(L,-2); // Duplicate fraction created
@@ -747,27 +779,19 @@ static int Fraction_new (lua_State *L) {
         lua_pushvalue(L,arg_pos);
       lua_call(L,nargs+1,0);
     }
-  } else {
-    luaL_error(L,"Invalid argument type to fraction new method");
   }
   return 1;
 }
 
 static int MixedFraction_new (lua_State *L) {
+  // Create a normal fraction ...
   Fraction_new(L);
-  // Change metatable to MixedFraction
+  // ... and change metatable to MixedFraction
   luaL_getmetatable(L,MixedFraction_metatable);
   lua_setmetatable(L, -2);
   return 1;
 }
 
-/*
-static int Fraction_newindex(lua_State *L)
-{
-  luaL_error(L,"attempt to index a Fraction_metatable value");
-  return 1;
-}
-*/
 #ifdef CALCULATE_LOOP_STATISTICS
 static int Fraction_loops(lua_State *L)
 {
@@ -780,6 +804,7 @@ static const struct luaL_Reg fractionlib_f [] = {
 //  { "__index",Fraction_mt_mt_index},
   {"new", Fraction_new},
   {"gcd", Fraction_gcd},
+  {"__call", Fraction_new},  // so Fraction() is same as Fraction:new()
 #ifdef CALCULATE_LOOP_STATISTICS
   {"loops", Fraction_loops},
 #endif
@@ -794,6 +819,7 @@ static const struct luaL_Reg fractionlib_m [] = {
   {NULL, NULL}
 };
 
+// Special metamethods -- these are not "inherited"
 static const struct luaL_Reg fractionlib_special_m [] = {
       {"__index", Fraction_index},
       {"__add",   Fraction_add},
@@ -813,16 +839,17 @@ static const struct luaL_Reg fractionlib_special_m [] = {
 
 static const struct luaL_Reg mixedfractionlib_f [] = {
   {"new", MixedFraction_new},
+  {"__call", MixedFraction_new},
   {NULL, NULL}
 };
 
 LUAMOD_API int luaopen_Fraction (lua_State *L) {
-  // Create the fraction metatable
+  // Create the metatable instances of Fraction
   luaL_newmetatable(L, Fraction_metatable);
   luaL_setfuncs(L,fractionlib_m,0);
   luaL_setfuncs(L,fractionlib_special_m,0);
 
-  // Create MixedFraction metatable
+  // Create metatable for instances of MixedFraction
   luaL_newmetatable(L, MixedFraction_metatable);
   luaL_setfuncs(L,fractionlib_special_m,0);
   // Change the __tostring method
@@ -839,15 +866,21 @@ LUAMOD_API int luaopen_Fraction (lua_State *L) {
   // Create Fraction.epsilon
   lua_pushnumber(L,5e-6);
   lua_setfield(L,-2,"epsilon");
+  lua_pushvalue(L,-1);
+  lua_setmetatable(L, -2);
   // Create global name
-  lua_pushvalue(L, -1); // duplicate
+  lua_pushvalue(L, -1);
   lua_setglobal(L,fraction_type);
 
+  // Mixed fraction lib
   luaL_newlib(L,mixedfractionlib_f);
+  lua_pushvalue(L,-1);
+  lua_setmetatable(L, -2);
+  lua_pushvalue(L,-2);
+  lua_setfield(L,-2,"__index");
+
   // Create global name
-  lua_pushvalue(L, -1); // duplicate
   lua_setglobal(L,mixedfraction_type);
-  lua_pop(L,1); // Only return fraction lib
 
   return 1;
 }

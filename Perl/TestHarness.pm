@@ -22,7 +22,7 @@ use warnings;
 sub new
 {
   my $class = shift;
-  my $self = bless { nPass => 0, nFail => 0, nTotalPass=>0, nTotalFail=>0 },$class;
+  my $self = bless { nPass => 0, nFail => 0, nTotalPass=>0, nTotalFail=>0 , nTestCases => 0 },$class;
   return $self;
 }
 
@@ -39,6 +39,7 @@ sub testcase
     $self->summary();
   }
   print "\n$s\n";
+  $self->{nTestCases} += 1;
   $self->{nTotalPass} += $self->{nPass};
   $self->{nTotalFail} += $self->{nFail};
   $self->{nPass} = 0;
@@ -67,7 +68,11 @@ sub final_summary
     $self->{nTotalPass} += $self->{nPass};
     $self->{nTotalFail} += $self->{nFail};
   }
-  print "\nTotal Passed: $self->{nTotalPass}\nTotal Failed: $self->{nTotalFail}\n";
+  print "\nFinal Summary\n";
+  printf "  %5d Test Cases\n",$self->{nTestCases};
+  printf "  %5d Total Tests\n",$self->{nTotalPass}+$self->{nTotalFail};
+  printf "  %5d Total Passed\n",$self->{nTotalPass};
+  printf "  %5d Total Failed\n",$self->{nTotalFail};
 }
 
 1;

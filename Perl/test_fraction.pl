@@ -25,6 +25,13 @@ sub test_gcd
   }
 }
 
+sub test_new_zero()
+{
+  $th->testcase("New with zero arguments");
+  my $f = Fraction->new();
+  $th->test("Fraction->new()=(0/1)",R($f,0,1));
+}
+
 sub test_set()
 {
   my @test_data = (
@@ -77,11 +84,11 @@ sub test_plus
     if(scalar(@$_) == 6) {
       # Adding fraction to number
       my $f2=Fraction->new($$_[2],$$_[3]);
-      my $f3=Fraction::fraction_plus_fraction($f1,$f2);
+      my $f3=$f1+$f2;
       $th->test("($$_[0]/$$_[1]) + ($$_[2]/$$_[3]) = ($$_[4]/$$_[5])",R($f3,$$_[4],$$_[5]));
     } elsif(scalar(@$_) == 5) {
       # Adding fraction to number
-      my $f3=Fraction::fraction_plus_fraction($f1,$$_[2]);
+      my $f3=$f1 + $$_[2];
       $th->test("($$_[0]/$$_[1]) + $$_[2] = ($$_[3]/$$_[4])",R($f3,$$_[3],$$_[4]));
     }
   }
@@ -106,11 +113,11 @@ sub test_minus
     if(scalar(@$_) == 6) {
       # Fraction - Fraction
       my $f2=Fraction->new($$_[2],$$_[3]);
-      my $f3=Fraction::fraction_minus_fraction($f1,$f2);
+      my $f3=$f1-$f2;
       $th->test("($$_[0]/$$_[1]) - ($$_[2]/$$_[3]) = ($$_[4]/$$_[5])",R($f3,$$_[4],$$_[5]));
     } elsif(scalar(@$_) == 5) {
       # Fraction - number
-      my $f3=Fraction::fraction_minus_fraction($f1,$$_[2]);
+      my $f3=$f1 - $$_[2];
       $th->test("($$_[0]/$$_[1]) - $$_[2] = ($$_[3]/$$_[4])",R($f3,$$_[3],$$_[4]));
     }
   }
@@ -135,11 +142,11 @@ sub test_multiply
     if(scalar(@$_) == 6) {
       # Fraction * Fraction
       my $f2=Fraction->new($$_[2],$$_[3]);
-      my $f3=Fraction::fraction_times_fraction($f1,$f2);
+      my $f3=$f1 * $f2;
       $th->test("($$_[0]/$$_[1]) * ($$_[2]/$$_[3]) = ($$_[4]/$$_[5])",R($f3,$$_[4],$$_[5]));
     } elsif(scalar(@$_) == 5) {
       # Fraction * number
-      my $f3=Fraction::fraction_times_fraction($f1,$$_[2]);
+      my $f3=$f1*$$_[2];
       $th->test("($$_[0]/$$_[1]) * $$_[2] = ($$_[3]/$$_[4])",R($f3,$$_[3],$$_[4]));
     }
   }
@@ -163,13 +170,92 @@ sub test_divide
     if(scalar(@$_) == 6) {
       # Fraction - Fraction
       my $f2=Fraction->new($$_[2],$$_[3]);
-      my $f3=Fraction::fraction_divided_by_fraction($f1,$f2);
+      my $f3=$f1/$f2;
       $th->test("($$_[0]/$$_[1]) / ($$_[2]/$$_[3]) = ($$_[4]/$$_[5])",R($f3,$$_[4],$$_[5]));
     } elsif(scalar(@$_) == 5) {
       # Fraction - number
-      my $f3=Fraction::fraction_divided_by_fraction($f1,$$_[2]);
+      my $f3=$f1/$$_[2];
       $th->test("($$_[0]/$$_[1]) / $$_[2] = ($$_[3]/$$_[4])",R($f3,$$_[3],$$_[4]));
     }
+  }
+}
+
+sub test_power
+{
+  my @test_data = (
+      [0,1,1,2,0,1],
+      [2,3,-2,4,485,396],
+      [2,3,16,24,1321,1731],
+      [1,3,1,3,303,437],
+      [-5,7,25,1,-1,4499],
+  );
+  $th->testcase("Fraction to power of fraction");
+  foreach (@test_data) {
+    my $f1=Fraction->new($$_[0],$$_[1]);
+    my $f2=Fraction->new($$_[2],$$_[3]);
+    my $f3=$f1**$f2;
+    $th->test("($$_[0]/$$_[1]) ** ($$_[2]/$$_[3]) = ($$_[4]/$$_[5])",R($f3,$$_[4],$$_[5]));
+  }
+}
+
+sub test_mod
+{
+  my @test_data = (
+      [0,1,1,2,0,1],
+      [2,3,-2,4,485,396],
+      [2,3,16,24,1321,1731],
+      [1,3,1,3,303,437],
+      [-5,7,25,1,-1,4499],
+  );
+  $th->testcase("Unary minus");
+  foreach (@test_data) {
+    my $f1=Fraction->new($$_[0],$$_[1]);
+    my $f2=Fraction->new($$_[2],$$_[3]);
+    my $f3=$f1 % $f2;
+    print "X ",ref($f3)," $ f3 X\n";
+    $th->test("-($$_[0]/$$_[1]) = ($$_[2]/$$_[3])",R($f3,$$_[2],$$_[3]));
+  }
+}
+
+sub test_neg
+{
+  my @test_data = (
+    [ 0,1,0,1],
+    [ 1, 1, -1, 1],
+    [ 3,4, -3, 4],
+    [ -3,4, 3, 4],
+    [ -3,-4, -3, 4],
+    [ 12,7, -12, 7],
+    [ -24,14, 12, 7],
+    [ -21,7, 3, 1],
+    [ -64,28, 16, 7],
+  );
+  $th->testcase("Unary minus");
+  foreach (@test_data) {
+    my $f1=Fraction->new($$_[0],$$_[1]);
+    my $f2=-$f1;
+    $th->test("-($$_[0]/$$_[1]) = ($$_[2]/$$_[3])",R($f2,$$_[2],$$_[3]));
+  }
+}
+
+sub test_abs
+{
+  my @test_data = (
+    [ 0,1,0,1],
+    [ 1, 1, 1, 1],
+    [ 3,4, 3, 4],
+    [ -3,4, 3, 4],
+    [ -3,-4, 3, 4],
+    [ 12,7, 12, 7],
+    [ -24,14, 12, 7],
+    [ -21,7, 3, 1],
+    [ -64,28, 16, 7],
+  );
+  $th->testcase("Unary minus");
+  foreach (@test_data) {
+    my $f1=Fraction->new($$_[0],$$_[1]);
+    my $f2=abs($f1);
+    $th->test("abs($$_[0]/$$_[1]) = ($$_[2]/$$_[3])",R($f2,$$_[2],$$_[3]));
   }
 }
 
@@ -188,7 +274,7 @@ sub test_eq
     my $f = Fraction->new($$_[0],$$_[1]);
     if(scalar(@$_) == 5) {
       my $f2 = Fraction->new($$_[2],$$_[3]);
-      $th->test("($$_[0]/$$_[1]) == ($$_[2]/$$_[3]) ".($$_[4] ? "(True)" : "(False)"),$f->eq($f2) == $$_[4]);
+      $th->test("($$_[0]/$$_[1]) == ($$_[2]/$$_[3]) ".($$_[4] ? "(True)" : "(False)"),($f == $f2) == $$_[4]);
     }
   }
 }
@@ -208,7 +294,7 @@ sub test_ne
     my $f = Fraction->new($$_[0],$$_[1]);
     if(scalar(@$_) == 5) {
       my $f2 = Fraction->new($$_[2],$$_[3]);
-      $th->test("($$_[0]/$$_[1]) != ($$_[2]/$$_[3]) ".($$_[4] ? "(True)" : "(False)"),$f->ne($f2) == $$_[4]);
+      $th->test("($$_[0]/$$_[1]) != ($$_[2]/$$_[3]) ".($$_[4] ? "(True)" : "(False)"),($f != $f2) == $$_[4]);
     }
   }
 }
@@ -228,7 +314,7 @@ sub test_lt
     my $f = Fraction->new($$_[0],$$_[1]);
     if(scalar(@$_) == 5) {
       my $f2 = Fraction->new($$_[2],$$_[3]);
-      $th->test("($$_[0]/$$_[1]) < ($$_[2]/$$_[3]) ".($$_[4] ? "(True)" : "(False)"),$f->lt($f2) == $$_[4]);
+      $th->test("($$_[0]/$$_[1]) < ($$_[2]/$$_[3]) ".($$_[4] ? "(True)" : "(False)"),($f < $f2) == $$_[4]);
     }
   }
 }
@@ -248,7 +334,7 @@ sub test_le
     my $f = Fraction->new($$_[0],$$_[1]);
     if(scalar(@$_) == 5) {
       my $f2 = Fraction->new($$_[2],$$_[3]);
-      $th->test("($$_[0]/$$_[1]) <= ($$_[2]/$$_[3]) ".($$_[4] ? "(True)" : "(False)"),$f->le($f2) == $$_[4]);
+      $th->test("($$_[0]/$$_[1]) <= ($$_[2]/$$_[3]) ".($$_[4] ? "(True)" : "(False)"),($f <= $f2) == $$_[4]);
     }
   }
 }
@@ -268,7 +354,7 @@ sub test_gt
     my $f = Fraction->new($$_[0],$$_[1]);
     if(scalar(@$_) == 5) {
       my $f2 = Fraction->new($$_[2],$$_[3]);
-      $th->test("($$_[0]/$$_[1]) > ($$_[2]/$$_[3]) ".($$_[4] ? "(True)" : "(False)"),$f->gt($f2) == $$_[4]);
+      $th->test("($$_[0]/$$_[1]) > ($$_[2]/$$_[3]) ".($$_[4] ? "(True)" : "(False)"),($f > $f2) == $$_[4]);
     }
   }
 }
@@ -288,7 +374,7 @@ sub test_ge
     my $f = Fraction->new($$_[0],$$_[1]);
     if(scalar(@$_) == 5) {
       my $f2 = Fraction->new($$_[2],$$_[3]);
-      $th->test("($$_[0]/$$_[1]) >= ($$_[2]/$$_[3]) ".($$_[4] ? "(True)" : "(False)"),$f->ge($f2) == $$_[4]);
+      $th->test("($$_[0]/$$_[1]) >= ($$_[2]/$$_[3]) ".($$_[4] ? "(True)" : "(False)"),($f >= $f2) == $$_[4]);
     }
   }
 }
@@ -313,11 +399,16 @@ sub test_round
 
 my @tests = (
   \&test_gcd,
+  \&test_new_zero,
   \&test_set,
   \&test_plus,
   \&test_minus,
   \&test_multiply,
   \&test_divide,
+  \&test_power,
+  \&test_mod,
+  \&test_neg,
+  \&test_abs,
   \&test_eq,
   \&test_ne,
   \&test_lt,

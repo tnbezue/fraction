@@ -19,7 +19,7 @@ use strict;
 use warnings;
 use Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT = qw( $nloops );
+our @EXPORT = qw( $nloops $epsilon);
 BEGIN
 {
 }
@@ -122,6 +122,7 @@ my $cmp_fraction= sub {
   return 0;
 };
 
+# Convert fraction to floating point. May be a floating point already
 my $fraction_to_float = sub {
   my ($self,$arg) = @_;
   my $result = $arg;
@@ -186,7 +187,7 @@ sub set
     my $w = $args[0];
     $n = $args[1];
     $d = $args[2];
-    my $sign = -1;
+    my $sign = 1;
     if($w < 0) {
       $sign *= -1;
       $w = -$w;
@@ -223,7 +224,7 @@ use overload (
   {
     my ($lhs,$rhs,$swap) = @_;
     if($swap) {
-      return $rhs*$lhs->{numerator_}/$lhs->{denominator_};
+      return $rhs + $lhs->{numerator_}/$lhs->{denominator_};
     }
     my $temp = Fraction->new($rhs); # rhs may not be a fraction, convert it to a fractopm
     my $f = Fraction->new($lhs->{numerator_}*$temp->{denominator_} + $temp->{numerator_}*$lhs->{denominator_},
@@ -269,9 +270,14 @@ use overload (
     my ($lhs,$rhs,$swap) = @_;
     my $b = $lhs->$fraction_to_float($lhs);
     my $e = $lhs->$fraction_to_float($rhs);
+    if($swap) {
+      my $temp = $b;
+      $b = $e;
+      $e = $temp;
+    }
     if($b < 0) {
       if(int($e) != $e) {
-        die "Attempt to rase a negative base to a non integer power";
+        die "Attempt to raise a negative base to a non integer power";
       }
     }
     my $result = $b**abs($e);
@@ -305,8 +311,11 @@ use overload (
       }
       $result = abs($lhs)/$temp;
     }
-    $temp = $result->{numerator_} % $result->{denominator_};
-    return Fraction->new($temp,$result->{denominator_});
+    my $sign = 1;
+    if($result->{numerator_} < 0) {
+      $sign = -1;
+    }
+    return Fraction->new($sign*(abs($result->{numerator_}) % $result->{denominator_}),$result->{denominator_});
   },
 
   'neg' => sub
@@ -318,10 +327,11 @@ use overload (
   '<=>' => sub
   {
     my ($lhs,$rhs,$swap) = @_;
+    my $result = $lhs->$cmp_fraction(Fraction->new($rhs));
     if($swap) {
-      return -$rhs->$cmp_fraction(Fraction->new($lhs));
+      $result = -$result;
     }
-    return $lhs->$cmp_fraction(Fraction->new($rhs));
+    return $result;
   },
 
   '""' => sub

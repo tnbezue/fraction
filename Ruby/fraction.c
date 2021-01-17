@@ -1,11 +1,112 @@
+#define CALCULATE_LOOP_STATISTICS
 #include "ruby.h"
 #include <time.h>
 #include <ctype.h>
 
 typedef struct {
-  long numerator;
-  long denominator;
+  int64_t numerator;
+  int64_t denominator;
 } fraction_internal_t;
+
+// Utilities
+static int space(const char* str)
+{
+  const char *ptr = str;
+  for(;*ptr == ' '; ptr++);
+  return ptr - str;
+}
+
+static int digits(const char* str)
+{
+  const char* ptr =str;
+  for(;isdigit(*ptr);ptr++);
+  return (ptr - str) ;
+}
+
+#define is_int(d) ((int64_t)d == d)
+#define signof(d) ((d) < 0 ? -1 : 1)
+
+// Determine if value given in string is a floating point number
+static int is_number(const char* str,double* result)
+{
+  char* ptr;
+  int valid=0;
+  str+=space(str);
+  if(*str != 0) {
+    *result = strtod(str,&ptr);
+    if(ptr) {
+      ptr+=space(ptr);
+      valid = *ptr == 0;
+    }
+  }
+  return valid;
+}
+
+// Determine if value in string is a fraction
+// ( (+-)? integer? (+-)? integer/(+-)? integer ) | ( (+-)? integer (/ (+-)? integer )? )
+static int is_fraction(const char* str,fraction_internal_t* f)
+{
+  int is_valid_fraction=0;
+  int64_t w=0,n=0,d=1;
+  const char* ptr=str;
+  ptr+=space(ptr);
+  if(*ptr != 0) {
+    const char* sign_ptr=ptr;
+    if(*ptr == '+' || *ptr == '-')
+      ptr++;
+    int ndigits;
+    if((ndigits=digits(ptr)) > 0) {
+      is_valid_fraction = 1;
+      n=atoll(sign_ptr);
+      ptr += ndigits;
+      if(*ptr == '/') {
+        is_valid_fraction=0;
+        ptr++;
+        sign_ptr=ptr;
+        if(*ptr == '+' || *ptr == '-')
+          ptr++;
+        if((ndigits=digits(ptr))>0) {
+          d=atoll(sign_ptr);
+          is_valid_fraction=1;
+          ptr+= ndigits;
+        }
+      } else {
+        ptr += space(ptr);
+        sign_ptr=ptr;
+        if(*ptr == '+' || *ptr == '-')
+          ptr++;
+        if((ndigits=digits(ptr)) > 0) {
+          is_valid_fraction=0;
+          w=n;
+          n=atoll(sign_ptr);
+          ptr+=ndigits;
+          if(*ptr == '/') {
+            ptr++;
+            sign_ptr=ptr;
+            if(*ptr == '+' || *ptr == '-')
+              ptr++;
+            if((ndigits=digits(ptr))>0) {
+              d=atoll(sign_ptr);
+              is_valid_fraction=1;
+              ptr+= ndigits;
+            }
+          }
+        }
+      }
+    }
+  }
+  ptr += space(ptr);
+  is_valid_fraction &= *ptr == 0;
+  if(is_valid_fraction) {
+    int sign = signof(w)*signof(n)*signof(d);
+    w=llabs(w);
+    n=llabs(n);
+    d=llabs(d);
+    f->numerator = sign*(w*d + n);
+    f->denominator = d;
+  }
+  return is_valid_fraction;
+}
 
 // Euclid's algorithm to find greatest common divisor
 //int64_t fraction_gcd(int64_t a,int64_t b)
@@ -20,73 +121,6 @@ static int64_t private_fraction_gcd(int64_t a,int64_t b)
   return a;
 }
 
-#define skip_ws(ptr)  for(;*ptr && isspace(*ptr);ptr++)
-#define sign(ptr) if(*ptr == '+' || *ptr == '-') ptr++
-#define decimal_point(ptr) if(*ptr == '.') ptr++
-#define digits(ptr) for(;*ptr && isdigit(*ptr);ptr++)
-// regex form: /^\s*\d+\s*$/
-static int parse_int(const char* str,long* i)
-{
-  char* endptr;
-
-  *i=strtoll(str,&endptr,0);
-  skip_ws(endptr);
-  if(*endptr == 0)
-    return 1;
-
-  return 0;
-}
-
-static int parse_double(const char* str,double  *d)
-{
-  char* endptr;
-
-  *d=strtod(str,&endptr);
-  skip_ws(endptr);
-  if(*endptr == 0)
-    return 1;
-
-  return 0;
-}
-
-// regex form: /^ws
-static int parse_fraction(const char* str,fraction_internal_t* f)
-{
-  skip_ws(str);
-  if(*str) {
-    const char *ptr_whole = str;
-    sign(str);
-    const char* ptr_num=NULL;
-    const char* ptr_den=NULL;
-    const char* temp=str;
-    digits(str);
-    if(*str && str > temp) {
-      if(*str == '/') {
-        ptr_num=ptr_whole;
-        ptr_whole=NULL;
-      } else {
-        skip_ws(str);
-        ptr_num=str;
-        digits(str);
-      }
-      if(*str == '/') {
-        str++;
-        ptr_den=str;
-        digits(str);
-        if(str > ptr_den) {
-          skip_ws(str);
-          if(*str == 0) {
-            int64_t whole = ptr_whole == NULL ? 0 : atol(ptr_whole);
-            f->denominator = atol(ptr_den);
-            f->numerator = whole*f->denominator + (whole < 0 ? -1 : 1 )*atol(ptr_num);
-            return 1;
-          }
-        }
-      }
-    }
-  }
-  return 0;
-}
 
 static fraction_internal_t rb_fraction_get(VALUE self)
 {
@@ -190,52 +224,44 @@ static int fraction_cmp_private(fraction_internal_t lhs,fraction_internal_t rhs)
 
 #ifdef CALCULATE_LOOP_STATISTICS
 VALUE loops;
-int fraction_loops;
+int nLoops;
 #endif
 static double fraction_epsilon=5e-6;
 static fraction_internal_t fraction_from_double(double d)
 {
-  int sign = d < 0 ? -1 : 1;
-  int64_t whole = labs(d);
-  double fract=fabs(d)-whole;
-  int64_t numerator=0;
-  int64_t denominator=1; // Round to next whole number if very close to it
+  fraction_internal_t f = { 0, 1};
+  long hm2=0,hm1=1,km2=1,km1=0,h=0,k=0;
+  double v = d;
 #ifdef CALCULATE_LOOP_STATISTICS
-  fraction_loops=0;
+  nLoops=0;
 #endif
-  if(fract > fraction_epsilon) {
-    // Starting approximation is 1 for numerator and 1/fract for denominator
-    // For example, if converting 0.06 to fraction, 1/0.06 = 16.666666667
-    // So starting fraction is 1/17
-    numerator=1;
-    denominator=round(1.0/fract);
-    while(1) {
-      // End if it's close enough to fract
-      double value=(double)numerator/(double)denominator;
-      double diff=value-fract;
-      if(fabs(diff) < fraction_epsilon)
-        break;
+  while(1) {
+    long a=v;
+    h=a*hm1 + hm2;
+    k=a*km1 + km2;
+//    printf("%lg %d %d %d %d %d %d %d\n",v,a,h,k,hm1,km1,hm2,km2);
+    if(fabs(d - (double)h/(double)k) < fraction_epsilon)
+      break;
+    v = 1.0/(v -a);
+    hm2=hm1;
+    hm1=h;
+    km2=km1;
+    km1=k;
 #ifdef CALCULATE_LOOP_STATISTICS
-      fraction_loops++;
+    nLoops++;
 #endif
-      // The desired fraction is current fraction (numerator/denominator) +/- the difference
-      // Convert difference to fraction in the same manner as starting approximation
-      // (numerator = 1 and denominator = 1/diff) and add to current fraction.
-      // numerator/denominator + 1/dd = (numerator*dd + denominator)/(denominator*dd)
-      int64_t dd;
-      dd=round(fabs(1.0/diff));
-      numerator=numerator*dd+(diff < 0 ? 1 : -1)*denominator;
-      denominator*=dd;
-    }
   }
-
-  fraction_internal_t f = { sign*(whole*denominator+numerator),denominator };
-  fraction_reduce(&f);
-  return f;
+  if(k<0) {
+    k=-k;
+    h=-h;
+  }
+  f.numerator=h;
+  f.denominator=k;
 
 #ifdef CALCULATE_LOOP_STATISTICS
-  loops=INT2FIX(fraction_loops);
+  loops=INT2FIX(nLoops);
 #endif
+  return f;
 }
 
 static void fraction_set_double(VALUE self,double d)
@@ -244,7 +270,9 @@ static void fraction_set_double(VALUE self,double d)
 }
 
 VALUE rb_cFraction;
+VALUE rb_cMixedFraction;
 static VALUE cFraction;
+static VALUE cMixedFraction;
 static ID id_new;
 
 VALUE rb_fraction_new_fraction(fraction_internal_t f)
@@ -267,7 +295,7 @@ VALUE fraction_gcd(VALUE self, VALUE ra,VALUE rb)
 static VALUE fraction_initialize(int argc, VALUE *argv, VALUE self)
 {
   fraction_internal_t f={0,1};
-  VALUE a1,a2,a3;
+  VALUE a1,a2,a3,klass;
   int n_args = rb_scan_args(argc,argv,"03",&a1,&a2,&a3);
   const char* strarg;
   switch (n_args) {
@@ -285,17 +313,20 @@ static VALUE fraction_initialize(int argc, VALUE *argv, VALUE self)
         case T_STRING:
             strarg=StringValueCStr(a1);
             double d;
-            if(parse_int(strarg,&f.numerator)) {
-              f.denominator=1;
-            } else if(parse_double(strarg,&d)) {
-              f=fraction_from_double(d);
-            } else if(!parse_fraction(strarg,&f)) {
-              /* Invalid args */
+            if(is_fraction(strarg,&f)) {
+              fraction_reduce(&f);
+            } else if(is_number(strarg,&d)) {
+              f = fraction_from_double(d);
+            } else {
+              /*
+                invalid arg
+              */
             }
             break;
 
           case T_OBJECT:
-            if(RBASIC(a1)->klass == rb_cFraction) {
+            klass = RBASIC(a1)->klass;
+            if(klass == rb_cFraction || klass == rb_cMixedFraction) {
               f=rb_fraction_get(a1);
             }
 //        default: /* Invalid arg */
@@ -343,14 +374,13 @@ VALUE fraction_to_s(VALUE self)
 {
   fraction_internal_t f = rb_fraction_get(self);
   char temp[64];
-  int np=sprintf(temp,"(%ld",f.numerator);
+  int np=sprintf(temp,"%ld",f.numerator);
   if(f.denominator!=1)
     np+=sprintf(temp+np,"/%ld",f.denominator);
-  sprintf(temp+np,")");
   return rb_str_new2(temp);
 }
 
-VALUE fraction_to_mixed_s(VALUE self)
+VALUE mixed_fraction_to_s(VALUE self)
 {
   fraction_internal_t f = rb_fraction_get(self);
   if(f.denominator > f.numerator)
@@ -392,6 +422,14 @@ VALUE fraction_uminus(VALUE self)
   return f_new;
 }
 
+VALUE fraction_uplus(VALUE self)
+{
+  fraction_internal_t f = rb_fraction_get(self);
+  f.numerator=f.numerator;
+  VALUE f_new = rb_fraction_new_fraction(f);
+  return f_new;
+}
+
 VALUE fraction_plus(VALUE self,VALUE other)
 {
   fraction_internal_t f=rb_fraction_get(self);
@@ -423,6 +461,35 @@ VALUE fraction_divide(VALUE self,VALUE other)
   fraction_internal_t fb=rb_fraction_get(f_value);
   return rb_fraction_new_fraction(fraction_divided_by_fraction(f,fb));
 }
+
+VALUE fraction_pow(VALUE self,VALUE other)
+{
+  fraction_internal_t f=rb_fraction_get(self);
+  VALUE f_value=rb_fraction_new_value(other);
+  fraction_internal_t fb=rb_fraction_get(f_value);
+  return rb_fraction_new_fraction(fraction_divided_by_fraction(f,fb));
+}
+
+VALUE fraction_round_(VALUE self,VALUE denom)
+{
+  fraction_internal_t f=rb_fraction_get(self);
+  long d = FIX2LONG(denom);
+  if(d < f.denominator) {
+    puts("Rounding");
+    f.numerator = round((double)f.numerator*(double)d/(double)f.denominator);
+    f.denominator = d;
+    fraction_reduce(&f);
+    rb_fraction_set(self,f);
+  }
+  return self;
+}
+
+VALUE fraction_round(VALUE self,VALUE denom)
+{
+  VALUE f=rb_fraction_new_value(self);
+  return fraction_round_(f,denom);
+}
+
 /*
 static VALUE fraction_numerator(VALUE self)
 {
@@ -442,16 +509,20 @@ void Init_fraction()
   rb_define_attr(rb_cFraction,"numerator",1,0);
   rb_define_attr(rb_cFraction,"denominator",1,0);
   rb_define_singleton_method(rb_cFraction,"gcd",fraction_gcd,2);
-  rb_define_method(rb_cFraction,"to_i",fraction_to_i,0);
-  rb_define_method(rb_cFraction,"to_f",fraction_to_f,0);
-  rb_define_method(rb_cFraction,"to_s",fraction_to_s,0);
-  rb_define_method(rb_cFraction,"to_mixed_s",fraction_to_mixed_s,0);
-  rb_define_method(rb_cFraction,"<=>",fraction_cmp,1);
-  rb_define_method(rb_cFraction,"-@",fraction_uminus,0);
+  rb_define_method(rb_cFraction,"set",fraction_initialize,-1);
   rb_define_method(rb_cFraction,"+",fraction_plus,1);
   rb_define_method(rb_cFraction,"-",fraction_minus,1);
   rb_define_method(rb_cFraction,"*",fraction_mul,1);
   rb_define_method(rb_cFraction,"/",fraction_divide,1);
+  rb_define_method(rb_cFraction,"**",fraction_pow,1);
+  rb_define_method(rb_cFraction,"-@",fraction_uminus,0);
+  rb_define_method(rb_cFraction,"+@",fraction_uplus,0);
+  rb_define_method(rb_cFraction,"to_i",fraction_to_i,0);
+  rb_define_method(rb_cFraction,"to_f",fraction_to_f,0);
+  rb_define_method(rb_cFraction,"to_s",fraction_to_s,0);
+  rb_define_method(rb_cFraction,"<=>",fraction_cmp,1);
+  rb_define_method(rb_cFraction,"round",fraction_round,1);
+  rb_define_method(rb_cFraction,"round!",fraction_round_,1);
 /*  rb_define_method(rb_cFraction,"",fraction_,);
   rb_define_method(rb_cFraction,"",fraction_,);
   rb_define_method(rb_cFraction,"",fraction_,);
@@ -467,4 +538,7 @@ void Init_fraction()
   rb_define_variable("$fraction_loops",&loops);
 #endif
   cFraction = rb_const_get(rb_cFraction, rb_intern("Fraction"));
+
+  rb_cMixedFraction = rb_define_class("MixedFraction",rb_cFraction);
+  rb_define_method(rb_cMixedFraction,"to_s",mixed_fraction_to_s,0);
 }

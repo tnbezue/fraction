@@ -8,6 +8,7 @@ class TestHarness
     @nFail = 0
     @nTotalPass=0
     @nTotalFail=0
+    @nTestCases=0
   end
 
   def summary
@@ -19,9 +20,11 @@ class TestHarness
 
   def final_summary
     summary if @nPass > 0 || @nFail > 0
-    puts ""
-    puts "Total Passed: #{@nTotalPass}"
-    puts "Total Failed: #{@nTotalFail}"
+    puts "\nFinal Summary"
+    puts "  %5d Test Cases" % [@nTestCases]
+    puts "  %5d Total Test" % [@nTotalPass + @nTotalFail]
+    puts "  %5d Passed" % [@nTotalPass]
+    puts "  %5d Failed" % [@nTotalFail]
   end
 
   def TestCase(msg)
@@ -31,6 +34,7 @@ class TestHarness
       @nFail=0
       puts ""
     end
+    @nTestCases+=1
     puts msg
   end
 
@@ -43,7 +47,7 @@ class TestHarness
       rm="fail"
       @nFail+=1
     end
-    puts "#{msg} ... #{rm}"
+    puts "  #{msg} ... #{rm}"
   end
 
   def do_test(argv)

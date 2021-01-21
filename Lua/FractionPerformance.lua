@@ -1,4 +1,21 @@
-require 'Fraction'
+#!/usr/bin/env -S lua
+
+local cmdline_args = {...}
+local params = {}
+use_native=false
+for _,v in ipairs(cmdline_args) do
+  if v == '-n' then
+    use_native=true
+  else
+    table.insert(params,v)
+  end
+end
+
+if use_native then
+  require 'FractionNative'
+else
+  require 'Fraction'
+end
 require "perf_utils"
 
 function println(fmt,...)
@@ -125,7 +142,7 @@ function DoTest(value,time_freq,loop_freq)
   local finish=clock_gettime_in_ns(CLOCK_PROCESS_CPUTIME_ID)
   -- divide by 1000 because divide by number of loops (100) then divide by 10 for 10s of nanoseconds
   time_freq:increment(math.floor(((finish-start)/1000.0)+0.5))
-  loop_freq:increment(Fraction:loops())
+  loop_freq:increment(Fraction.loops)
 end
 
 function SingleTest(denominator)
@@ -175,7 +192,6 @@ end
 local singleTestDenominator = 0
 local randomNTest = 0
 local needHelp = false
-local params = {...}
 local nparams = #params
 if(nparams > 0) then
   local i = 1

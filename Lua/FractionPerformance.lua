@@ -159,25 +159,10 @@ function SingleTest(denominator)
 end
 
 function RandomTest(nTests)
-  local values = {}
-  while (nTests > 0) do
-    local value = math.random()*math.random(math.random(1000))
-    local found=false
-    for _,v in ipairs(values) do
-      if(math.abs(v - value) < Fraction.epsilon) then
-        found = true
-        break
-      end
-    end
-    if(found == false) then
-      table.insert(values,value)
-      nTests = nTests - 1
-    end
-  end
   local time_freq = FrequencyArray:new()
   local loop_freq = FrequencyArray:new()
-  for _,v in ipairs(values) do
-    DoTest(v,time_freq,loop_freq)
+  for i = 1,nTests,1 do
+    DoTest(math.random()*math.random(math.random(1000)),time_freq,loop_freq)
   end
 
   time_freq:sort()

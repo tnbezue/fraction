@@ -569,7 +569,7 @@ void Init_fraction()
   rb_define_method(rb_cFraction, "initialize",fraction_initialize , -1);
   rb_define_attr(rb_cFraction,"numerator",1,0);
   rb_define_attr(rb_cFraction,"denominator",1,0);
-  rb_define_singleton_method(rb_cFraction,"gcd",fraction_gcd,2);
+  rb_define_singleton_method(rb_cFraction,"GCD",fraction_gcd,2);
   rb_define_method(rb_cFraction,"set",fraction_initialize,-1);
   rb_define_method(rb_cFraction,"+",fraction_plus,1);
   rb_define_method(rb_cFraction,"-",fraction_minus,1);

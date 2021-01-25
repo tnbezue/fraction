@@ -156,7 +156,6 @@ def test_to_s
   test_data.each do |n,d,s|
     f=FractionType.new(n,d)
     fs=f.to_s
-    puts fs
     $tester.Test("#{FractionType}.new(#{n},#{d}).to_s = #{s}",fs==s)
   end
 end

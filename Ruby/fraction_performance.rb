@@ -6,8 +6,8 @@ def syntax(pgm)
   puts "\nWhere:  -h | --help prints this help message"
   puts "        -n | --native -- use native (ruby) version rather than C extension"
   puts "        -s | --single N -- gather statistics using N as denominator (runs tests using fractions 1/N to (N-1)/N)"
-  puts "        -r | --random N -- gather statistics running a minimum of N tests using random floating point numbers"
-  puts "        The default is to run a single test using 1000 as denominator and 1000 minimum random tests\n"
+  puts "        -r | --random N -- gather statistics running N tests using random floating point numbers"
+  puts "        The default is to run a single test using 1000 as denominator and 1000 random tests\n"
   puts "\nExamples"
   puts "   1) To run default case"
   puts "      #{pgm}"
@@ -15,7 +15,7 @@ def syntax(pgm)
   puts "      #{pgm} -s 100000"
   puts "   3) To run 30000 random test using the native (ruby) version\n"
   puts "      #{pgm} -n -r 30000\n"
-  puts "   4) To run a single test using denominator of 100000 and a minimum of 30000 random test\n"
+  puts "   4) To run a single test using denominator of 100000 and 30000 random test\n"
   puts "      #{pgm} --single 100000 --random 30000\n\n"
   exit(0)
 end
@@ -195,14 +195,11 @@ end
 
 def random(nTests)
   r=Random.new
-  values = Array.new
-  while values.size < nTests
-    value = r.rand(nTests)*r.rand
-    values << value if values.index(value) == nil
-  end
   time_freq = FrequencyArray.new
   loop_freq = FrequencyArray.new
-  values.each {|value| do_test(value,time_freq,loop_freq)}
+  nTests.times do |i|
+    do_test(r.rand(nTests)*r.rand,time_freq,loop_freq)
+  end
   time_freq.sort
   loop_freq.sort
   time_freq.show_results("Time taken to convert floating point to faction (time is in 10s of nanoseconds)","Time")

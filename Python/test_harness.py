@@ -6,9 +6,11 @@ class TestHarness:
   nFail = 0
   nTotalPass = 0
   nTotalFail = 0
+  nTestCases = 0
 
   @classmethod
   def Summary(self):
+    print("Summary")
     print("  Passed: %d" % self.nPass)
     print("  Failed: %d\n" % self.nFail)
 
@@ -18,8 +20,11 @@ class TestHarness:
       self.Summary()
     self.nTotalPass += self.nPass
     self.nTotalFail += self.nFail
-    print("Total Passed: %d" % self.nTotalPass)
-    print("Total Failed: %d" % self.nTotalFail)
+    print("\nFinal Summary")
+    print("  %5d Total Cases: " % self.nTestCases)
+    print("  %5d Total Tests" % (self.nTotalPass + self.nTotalFail))
+    print("  %5d Total Passed" % self.nTotalPass)
+    print("  %5d Total Failed" % self.nTotalFail)
 
   @classmethod
   def TestCase(self,msg):
@@ -29,6 +34,7 @@ class TestHarness:
     self.nTotalFail += self.nFail
     self.nPass = 0
     self.nFail = 0
+    self.nTestCases += 1
     print(msg)
 
   @classmethod
@@ -41,10 +47,10 @@ class TestHarness:
       print(" ",msg,"... fail")
 
   @classmethod
-  def RunTests(self,tests):
+  def RunTests(self,tests,test_numbers):
     nTests = len(tests)
-    if len(sys.argv) > 1:
-      for itest in sys.argv[1:]:
+    if len(test_numbers) > 0:
+      for itest in test_numbers:
         i = int(itest)
         if i < nTests:
           tests[i]()

@@ -18,6 +18,7 @@
 import std.math;
 import std.stdio;
 import std.string;
+import std.conv;
 
 version(USE_32_BIT_FRACTION)
 {
@@ -69,16 +70,131 @@ class Fraction {
       denominator_=cast(fraction_numerator_denominator_t)d;
     }
 
+    static int space(const string str)
+    {
+      int n;
+      for(n=0;n<cast(int)str.length;n++) {
+        if(str[n] != ' ') {
+          break;
+        }
+      }
+      return n;
+    }
+
+    static int digits(const string str)
+    {
+      int n;
+      for(n=0;n<cast(int)str.length;n++) {
+        if(str[n] < '0' || str[n] > '9') {
+          break;
+        }
+      }
+      return n;
+    }
+
+    void set_fraction_string(const string str)
+    {
+      int len = cast(int)str.length;
+      int n=0;
+      int w_b = -1,w_e = -1,n_b = -1,n_e = -1,d_b = -1,d_e = -1; // whole begin, whole end, numerator begin ...
+      int nc; // n characters
+      n += space(str[n..$]);
+      if(n < len) {
+        w_b = n;
+        if(str[n] == '+' || str[n] == '-')
+          n++;
+        nc = digits(str[n..$]);
+        if(nc > 0) {
+          n+= nc;
+          w_e = n;
+          if(str[n] == '/') {
+            n++;
+            n_b = w_b;
+            n_e = w_e;
+            w_b = -1;
+            w_e = -1;
+            d_b = n;
+            if(str[n] == '+' || str[n] == '-')
+              n++;
+            nc = digits(str[n..$]);
+            if(nc > 0) {
+              n += nc;
+              d_e = n;
+            }
+          } else { // mixed fraction
+            nc = space(str[n..$]);
+            if(nc == 1) {
+              n+=nc;
+              n_b = n;
+              if(str[n] == '+' || str[n] == '-')
+                n++;
+              nc=digits(str[n..$]);
+              if(nc > 0) {
+                n+= nc;
+                n_e = n;
+                if(str[n] == '/') {
+                  n++;
+                  d_b = n;
+                  if(str[n] == '+' || str[n] == '-')
+                    n++;
+                  nc=digits(str[n..$]);
+                  if(nc > 0) {
+                    n += nc;
+                    d_e = n;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      if(d_e > 0) {
+        n += space(str[n..$]);
+        if(n >= len) {
+          if(w_e > 0) {
+            set(to!long(str[w_b..w_e]),to!long(str[n_b..n_e]),to!long(str[d_b..d_e]));
+//            writeln(format("%s -- %s %s/%s",str,str[w_b..w_e],str[n_b..n_e],str[d_b..d_e]));
+          } else {
+            set(to!long(str[n_b..n_e]),to!long(str[d_b..d_e]));
+//            writeln(format("%s -- %s/%s",str,str[n_b..n_e],str[d_b..d_e]));
+          }
+        } else {
+          throw new std.conv.ConvException(format("Can't convert string value '%s' to fraction",str));
+        }
+      } else {
+        throw new std.conv.ConvException(format("Can't convert string value '%s' to fraction",str));
+      }
+    }
   protected:
     fraction_numerator_denominator_t numerator_;
     fraction_numerator_denominator_t denominator_;
 
   public:
     this() { set(0,1); }
-    this(fraction_numerator_denominator_t n) { set(n,1); }
-    this(fraction_numerator_denominator_t n,fraction_numerator_denominator_t d) { set(n,d); }
+    this(fraction_numerator_denominator_t n) { set_private(n,1); }
+    this(fraction_numerator_denominator_t n,fraction_numerator_denominator_t d) { set_private(n,d); }
+    this(fraction_numerator_denominator_t w,fraction_numerator_denominator_t n, fraction_numerator_denominator_t d)
+        { set(w,n,d); }
+    this(string str) { set(str); }
+    void set(fraction_numerator_denominator_t w, fraction_numerator_denominator_t n, fraction_numerator_denominator_t d)
+    {
+      int sign = 1;
+      if(w<0) {
+        w=-w;
+        sign=-sign;
+      }
+      if(n<0) {
+        n=-n;
+        sign=-sign;
+      }
+      if(d<0) {
+        d=-d;
+        sign=-sign;
+      }
+      Fraction.set_private(sign*(cast(long)w*cast(long)d+cast(long)n),d);
+    }
     this(double d) { set(d); }
-    this(Fraction f) { set(f.numerator_,f.denominator_); }
+    this(Fraction f) { numerator_ = f.numerator_; denominator_ = f.denominator_; }
 
     fraction_numerator_denominator_t numerator() const { return numerator_; }
     fraction_numerator_denominator_t denominator() const { return denominator_; }
@@ -92,7 +208,7 @@ class Fraction {
       set_private(cast(long)n,cast(long)d);
     }
 
-    static double epsilon=0.000005;
+    static double epsilon=5e-6;
 
     version (CALCULATE_LOOP_STATISTICS) {
       static int nLoops;
@@ -128,6 +244,14 @@ class Fraction {
       denominator_=k;
     }
 
+    void set(string str)
+    {
+      try {
+        set(to!double(str)); // Try as a numerical value
+      } catch(std.conv.ConvException e) {
+        set_fraction_string(str);
+      }
+    }
     override bool opEquals(Object o)
     {
       return opCmp(o) == 0;
@@ -175,45 +299,64 @@ class Fraction {
         set_private(cast(long)numerator_*cast(long)rhs.numerator_,cast(long)denominator_*cast(long)rhs.denominator_);
       else static if(op == "/")
         set_private(cast(long)numerator_*cast(long)rhs.denominator_,cast(long)denominator_*cast(long)rhs.numerator_);
+      else static if(op == "^^") {
+        double b = cast(double)this;
+        double e = cast(double)rhs;
+        if(b < 0) {
+          if(cast(long)e != e)
+            assert(0,format("Can not raise negative value (%s) to non integer power (%s)",this,rhs));
+        }
+        double result = b^^fabs(e);
+        if(e < 0)
+          result=1.0/result;
+        set(result);
+      }
       else
         static assert(0,"Op"~op~"not supported");
     }
 
     void opOpAssign(string op)(double rhs)
     {
-      Fraction rhs_as_f=new Fraction(rhs);
-      opOpAssign(op)(rhs_as_f);
+      Fraction rhs_as_f=new typeof(this)(rhs);
+      opOpAssign!(op)(rhs_as_f);
     }
 
-    Fraction opBinary(string op)(Fraction rhs)
+    auto opBinary(string op)(Fraction rhs)
     {
-      Fraction f=new Fraction(this);
-      static if(op == "+" || op == "-" || op == "*" || op == "/")
-        f.opOpAssign!(op)(rhs);
-      else static assert(0, "Operator "~op~" not implemented");
+      auto f=new typeof(this)(this);
+      //writeln(is(typeof(this)==Fractioin));
+      f.opOpAssign!(op)(rhs);
       return f;
     }
 
-    Fraction opBinary(string op)(double rhs)
+    auto opBinary(string op)(double rhs)
     {
-      Fraction f=new Fraction(rhs);
-      static if(op == "+" || op == "-" || op == "*" || op == "/")
-        f.opOpAssign!(op)(this);
-      else static assert(0, "Operator "~op~" not implemented");
-      return f;
+      auto f=new typeof(this)(rhs);
+      return this.opBinary!(op)(f);
+//      return f;
     }
 
     double opBinaryRight(string op)(double lhs)
     {
-      double tmp=cast(double)this;
+      double rhs=cast(double)this;
       static if(op == "+")
-        return lhs + tmp;
+        return lhs + rhs;
       else static if(op == "-")
-        return lhs - tmp;
+        return lhs - rhs;
       else static if(op == "*")
-        return lhs * tmp;
+        return lhs * rhs;
       else static if(op == "/")
-        return lhs/tmp;
+        return lhs/rhs;
+      else static if(op == "^^") {
+        if(lhs < 0) {
+          if(cast(long)rhs != rhs)
+            assert(0,format("Can not raise negative value (%s) to non integer power (%s)",lhs,this));
+        }
+        double result = lhs^^fabs(rhs);
+        if(rhs < 0)
+          result=1.0/result;
+        return result;
+      }
       else static assert(0, "Operator "~op~" not implemented");
       return 0.0;
     }
@@ -240,17 +383,21 @@ class Fraction {
 class MixedFraction : Fraction {
 
     this() { super(); }
-    this(fraction_numerator_denominator_t w,fraction_numerator_denominator_t n,fraction_numerator_denominator_t d) { set(w,n,d); }
-    this(fraction_numerator_denominator_t n,fraction_numerator_denominator_t d) { Fraction.set(n,d); }
+    this(fraction_numerator_denominator_t n) { super(n); }
+    this(fraction_numerator_denominator_t n,fraction_numerator_denominator_t d) { super(n,d); }
+    this(fraction_numerator_denominator_t w,fraction_numerator_denominator_t n,fraction_numerator_denominator_t d) { super(w,n,d); }
     this(double d) {
       super(d);
+    }
+    this(string str) {
+      super(str);
     }
     this(MixedFraction mf) {
       super(mf);
     }
 
-    void set( fraction_numerator_denominator_t w, fraction_numerator_denominator_t n, fraction_numerator_denominator_t d) { Fraction.set(w*d+(w<0?-1:1)*n,d); }
-    override void set(fraction_numerator_denominator_t n,fraction_numerator_denominator_t d) { Fraction.set(n,d); }
+//    void set( fraction_numerator_denominator_t w, fraction_numerator_denominator_t n, fraction_numerator_denominator_t d) { Fraction.set(w*d+(w<0?-1:1)*n,d); }
+//    override void set(fraction_numerator_denominator_t n,fraction_numerator_denominator_t d) { Fraction.set(n,d); }
     override string toString() const
     {
       fraction_numerator_denominator_t whole = numerator_/denominator_;
@@ -260,5 +407,16 @@ class MixedFraction : Fraction {
         return format("%s",whole);
       return format("%s %s/%s",whole,abs(numerator_-whole*denominator_),denominator_);
     }
+auto opBinary(string op)(Fraction rhs)
+    {
+      auto f=new MixedFraction(this);
+      f.opOpAssign!(op)(rhs);
+      return f;
+    }
 
+    auto opBinary(string op)(double rhs)
+    {
+      auto f=new MixedFraction(rhs);
+      return opBinary!(op)(f);
+    }
 }

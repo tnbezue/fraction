@@ -3,11 +3,15 @@ import core.time;
 import core.stdc.time;
 import std.stdio;
 import std.math;
+import std.stdio;
 import core.sys.posix.unistd;
 import std.array;
 import std.random;
 import std.getopt;
 import std.algorithm.sorting;
+import std.datetime.stopwatch;
+import std.datetime.timezone;
+import std.datetime.systime;
 
 struct Statistics {
     double average_;
@@ -18,11 +22,15 @@ struct Statistics {
 
     MixedFraction average() const
     {
-      return new MixedFraction(cast(double)(cast(int)(average_*100))/100.0);
+      MixedFraction mf = new MixedFraction(average_);
+      mf.round(100);
+      return mf;
     }
 
     MixedFraction standardDeviation() const {
-      return new MixedFraction(cast(double)(cast(int)(standard_deviation_*10))/10.0);
+      MixedFraction mf = new MixedFraction(standard_deviation_);
+      mf.round(100);
+      return mf;
     }
     int sampleSize() const { return sampleSize_; }
     int median() const { return median_; }
@@ -103,7 +111,13 @@ struct FrequencyArray {
     stdout.writefln("\n  %5s|                 %s",xlabel,ylabel);
     stdout.writeln("  ",replicate("-",terminal_cols+6));
     for(i=0;i<freq_.length;i++) {
-      stdout.writefln("  %3s  |%s %s",freq_[i].value,replicate("#",cast(int)round(freq_[i].frequency*scale)),freq_[i].frequency);
+      int height = cast(int)round(freq_[i].frequency*scale);
+      string ch = "#";
+      if(height == 0) {
+        ch = "|";
+        height=1;
+      }
+      stdout.writefln("  %4s | %s %s",freq_[i].value,replicate(ch,height),freq_[i].frequency);
     }
     stdout.writeln();
   }
@@ -125,30 +139,30 @@ struct FrequencyArray {
 
 const int terminal_cols=50;
 
-void doTest(int denominator,ref FrequencyArray timeFreq,ref FrequencyArray loopFreq)
+void doTest(double value,ref FrequencyArray timeFreq,ref FrequencyArray loopFreq)
 {
   Fraction f=new Fraction;
-  int i;
-  for(i=0;i<denominator;i++) {
-    double value=cast(double)i/cast(double)denominator;
-    MonoTime before = MonoTime.currTime;
-    f = value;
-    MonoTime after = MonoTime.currTime;
-    long timeElapsed = after.ticks - before.ticks;
-    if(i>0) {
-      timeFreq.increment(cast(int)timeElapsed/10);
-      version (CALCULATE_LOOP_STATISTICS) {
-        loopFreq.increment(f.nLoops);
-      }
-    }
+  auto before =  MonoTimeImpl!(ClockType.processCPUTime).currTime;
+  f = value;
+  auto after = MonoTimeImpl!(ClockType.processCPUTime).currTime;
+  auto ticks = after.ticks - before.ticks;
+  auto diffInNsecs = ticksToNSecs(ticks);
+  timeFreq.increment(cast(int)round(cast(double)(diffInNsecs)/10.0));
+  version (CALCULATE_LOOP_STATISTICS) {
+    loopFreq.increment(f.nLoops);
   }
+//    }
+//  }
 }
 
 void singleTest(int denominator)
 {
   FrequencyArray timeFreq;
   FrequencyArray loopFreq;
-  doTest(denominator,timeFreq,loopFreq);
+  int i;
+  for(i=0;i<denominator;i++) {
+    doTest(cast(double)i/cast(double)denominator,timeFreq,loopFreq);
+  }
   timeFreq.sort();
   timeFreq.showResults("Time taken to convert floating point to faction (tims is in 10s of nanoseconds)","Time");
   version (CALCULATE_LOOP_STATISTICS) {
@@ -160,31 +174,20 @@ void singleTest(int denominator)
   }
 }
 
-void randomTest(int min_tests)
+struct numerator_denominator_t
+{
+  int numerator;
+  int denominator;
+};
+
+void randomTest(int ntests)
 {
   FrequencyArray timeFreq;
   FrequencyArray loopFreq;
-  const int max_denominators=100;
-  int[] denominators;
   auto rnd = Random(cast(int)time(null));
-  int ntest=0,i;
-  while(ntest < min_tests) {
-    int denominator = uniform(min_tests, 214748364, rnd) % min_tests;
-    bool found=false;
-    for(i=0;i<denominators.length;i++) {
-      if(denominator==denominators[i]) {
-        found=true;
-        break;
-      }
-    }
-    if(!found) {
-      denominators.length+=1;
-      denominators[i]=denominator;
-      ntest+=denominator-1;
-    }
-  }
-  for(i=0;i<denominators.length;i++) {
-    doTest(denominators[i],timeFreq,loopFreq);
+  int i;
+  for(i=0;i<ntests;i++) {
+    doTest(cast(double)uniform(100, 214748364, rnd)/cast(double)uniform(100, 214748364, rnd),timeFreq,loopFreq);
   }
   timeFreq.sort();
   timeFreq.showResults("Time taken to convert floating point to faction (tims is in 10s of nanoseconds)","Time");

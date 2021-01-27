@@ -1,71 +1,82 @@
 import std.stdio;
+import core.stdc.time;
 import std.math;
 import std.conv;
 import std.string;
+import std.random;
 import Fraction;
 import TestHarness;
 
-TestHarness th;
-void test_init()
-{
+version (MIXED) {
+  alias FractionType = MixedFraction;
+  string ftname = "MixedFraction";
+} else {
+  alias FractionType = Fraction;
+  string ftname = "Fraction";
 }
+
+bool R(FractionType f,fraction_numerator_denominator_t n,fraction_numerator_denominator_t d)
+{
+  return f.numerator == n && f.denominator == d;
+}
+
+TestHarness th;
 
 void test_gcd()
 {
-  int[][] test_gcd_data =
+  int[][] test_data =
   [
     [ 0,2,2],
     [10,1,1],
     [105,15,15],
     [10,230,10],
     [28,234,2],
-    [872452914,78241452,2]
+    [872452914,78241452,6]
+  ];
+  th.TestCase("Greatest common denominator");
+  foreach(td; test_data) {
+    th.Test(format("%s.GCD(%s/%s)==%s",ftname,td[0],td[1],td[2]),FractionType.gcd(td[0],td[1]) == td[2]);
+  }
+}
+
+void test_new_zero_args()
+{
+  th.TestCase("new zero args");
+  FractionType f=new FractionType();
+  th.Test(format("%s() = (0/1)",ftname),R(f,0,1) && is(typeof(f) == FractionType));
+}
+
+void test_new_one_integer_arg() {
+  long[] test_data = [ 0 , -1, 10, 11, -13 ];
+
+  th.TestCase("New one integer arg");
+  foreach (i ; test_data) {
+    auto f=new FractionType(i);
+
+    th.Test(format("%s(%d) = %d/1",ftname,i,i),R(f,i,1) && is(typeof(f) == FractionType));
+  }
+}
+
+void test_new_two_integer_args() {
+  long[][] test_data =
+  [
+    [0,1,0,1],
+    [1,-3,-1,3],
+    [-1,-3,1,3],
+    [-6,-8,3,4],
+    [2,4,1,2],
   ];
 
-  Fraction f=new Fraction;
-  for(int i=0;i<test_gcd_data.length;i++) {
-    th.Test(format("GCD(%s/%s)==%s",test_gcd_data[i][0],test_gcd_data[i][1],test_gcd_data[i][2]),f.gcd(test_gcd_data[i][0],test_gcd_data[i][0]) == test_gcd_data[i][0]);
+  th.TestCase("New two integer args");
+  foreach (td; test_data) {
+    auto f=new FractionType(td[0],td[1]);
+
+    th.Test(format("%s(%s,%s) = %s/%s",ftname,td[0],td[1],td[2],td[3]),R(f,td[2],td[3]) && is(typeof(f) == FractionType));
   }
 }
 
-void test_set() {
-  version (USE_32_BIT_FRACTION) {
-    long[][] test_set_data =
-    [
-      [0L,1L,0L,1L],
-      [1L,-3L,-1L,3L],
-      [-1L,-3L,1L,3L],
-      [-6L,-8L,3L,4L],
-      [2L,4L,1L,2L],
-    ];
-  } else {
-    long[][] test_set_data =
-    [
-      [0L,1L,0L,1L],
-      [1L,-3L,-1L,3L],
-      [-1L,-3L,1L,3L],
-      [-6L,-8L,3L,4L],
-      [2L,4L,1L,2L],
-      [ 17179869182L,68719476736L,8589934591L, 34359738368L ],
-      [ 68719476736L,17179869183L, 68719476736L,17179869183L],
-      [ -17179869182L,68719476736L,  -8589934591L, 34359738368L],
-      [ -68719476736L,17179869183L, -68719476736L,17179869183L]
-    ];
-  }
-  stdout.writeln(fraction_numerator_denominator_t.max);
-  th.TestCase("Fraction Set(n,d)");
-  Fraction f=new Fraction;
-  for(int i=0;i<test_set_data.length;i++) {
-    f.set(test_set_data[i][0],test_set_data[i][1]);
-//    stdout.writeln(f);
-//    stdout.writeln(f.gcd(test_set_data[i][0],test_set_data[i][1]));
-    th.Test(format("Set(%s,%s) = %s/%s",test_set_data[i][0],test_set_data[i][1],test_set_data[i][2],test_set_data[i][3]),
-          f.numerator()==test_set_data[i][2] && f.denominator()==test_set_data[i][3]);
-  }
-}
-
-void test_set_wnd() {
-  int[][] test_set_wnd_data =
+void test_new_three_integers() {
+  int[][] test_data =
   [
     [-10,2,3,-32,3],
     [0,-1,3,-1,3],
@@ -74,652 +85,719 @@ void test_set_wnd() {
     [10,2,3,32,3],
   ];
 
-  th.TestCase("Fraction Set(w,n,d)");
-  MixedFraction f=new MixedFraction;
+  th.TestCase("New three integers");
 
-  for(int i=0;i<test_set_wnd_data.length;i++) {
-    f.set(test_set_wnd_data[i][0],test_set_wnd_data[i][1],test_set_wnd_data[i][2]);
-    th.Test(format("Set(%s,%s,%s) = %s/%s",test_set_wnd_data[i][0],test_set_wnd_data[i][1],
-          test_set_wnd_data[i][2],test_set_wnd_data[i][3],test_set_wnd_data[i][4]),
-          f.numerator()==test_set_wnd_data[i][3] && f.denominator()==test_set_wnd_data[i][4]);
+  foreach (td ; test_data) {
+    auto f=new FractionType(td[0],td[1],td[2]);
+    th.Test(format("%s(%s,%s,%s) = %s/%s",ftname,td[0],td[1],
+          td[2],td[3],td[4]),R(f,td[3],td[4]) && is(typeof(f) == FractionType));
   }
 }
 
-
-void test_set_double()
+struct DII {
+  double dbl;
+  int n;
+  int d;
+}
+void test_new_double()
 {
-  double [] test_set_double_input = [ 0.0, 1.0, 12.25, -2.5, -0.06,0.3,0.33,0.3333333];
-  int [][] test_set_double_output = [
-    [0,1] , [ 1,1] , [ 49, 4 ], [-5,2 ], [ -3, 50 ], [3,10] , [ 33,100], [1,3]
+  DII [] test_data = [
+    {0.0 , 0, 1 },
+    {1.0 , 1, 1 },
+    {12.25 , 49, 4 },
+    {-2.5 , -5, 2 },
+    {-0.06 , -3, 50 },
+    {0.3 , 3, 10 },
+    {0.33 , 33, 100 },
+    {0.33333333 , 1, 3 },
   ];
-  Fraction f = new Fraction;
+  th.TestCase("New single double arg");
 
-  for(int i=0;i<test_set_double_input.length;i++) {
-    f.set(test_set_double_input[i]);
-    th.Test(format("Set(%s) = %s/%s",test_set_double_input[i],test_set_double_output[i][0],test_set_double_output[i][1]),
-          f.numerator()==test_set_double_output[i][0] && f.denominator()==test_set_double_output[i][1]);
+  foreach( td; test_data) {
+    auto f = new FractionType(td.dbl);
+    th.Test(format("%s(%s) = %s/%s",ftname,td.dbl,td.n,td.d), R(f,td.n,td.d) && is(typeof(f) == FractionType));
   }
 }
 
-void test_equality()
+struct SII {
+  string s;
+  int n;
+  int d;
+}
+void test_new_string()
 {
-  int [][] test_equality_data = [
-    [0,1,0,1,1],
-    [0,1,1,2,0],
-    [2,3,-2,3,0],
-    [2,3,16,24,1],
-    [1,3,1,3,1],
-    [-5,7,25,35,0]
+  th.TestCase("New with one string arguemtn");
+  SII [] test_data = [
+    {  "-12 1/4",-49,4},
+    {  "12 -1/4",-49,4},
+    {  "-12 -1/4",49,4},
+    {  "12 -1/-4",49,4},
+    {  "-12 -1/-4",-49,4},
+    {  "-10.0",-10,1},
+    {  "-1",-1,1},
+    {  "-1/4",-1,4},
+    {  "0.0",0,1},
+    {  "0.25",1,4},
+    {  "1.0",1,1},
+    {  "10/1",10,1},
+    {   "12.25",49,4 },
   ];
-  th.TestCase("Fraction equality");
-  Fraction f1=new Fraction;
-  Fraction f2=new Fraction;
-
-  for(int i=0;i<test_equality_data.length;i++) {
-    f1.set(test_equality_data[i][0],test_equality_data[i][1]);
-    f2.set(test_equality_data[i][2],test_equality_data[i][3]);
-    th.Test(format(" (%s/%s) == (%s/%s)",test_equality_data[i][0],test_equality_data[i][1],test_equality_data[i][2],
-        test_equality_data[i][3]),(f1==f2),cast(bool)test_equality_data[i][4]);
+  foreach( td; test_data) {
+    auto f = new FractionType(td.s);
+    th.Test(format("%s(\"%s\") = (%d/%d)",ftname,td.s,td.n,td.d),R(f,td.n,td.d) && is(typeof(f) == FractionType));
   }
 }
 
-void test_inequality()
+struct IIS {
+  int n;
+  int d;
+  string s;
+}
+
+void test_fraction_to_string()
 {
-  int [][] test_inequality_data = [
-    [0,1,0,1,0],
-    [0,1,1,2,1],
-    [2,3,-2,3,1],
-    [2,3,16,24,0],
-    [1,3,1,3,0],
-    [-5,7,25,35,1]
-  ];
-  th.TestCase("Fraction inequality");
-  Fraction f1=new Fraction;
-  Fraction f2=new Fraction;
+  version (MIXED) {
+    IIS [] test_data = [
+      { -503,50,"-10 3/50" },
+      { -3,50, "-3/50"},
+      { 0,1,"0" },
+      { 3,50, "3/50"  },
+      { 503,50,"10 3/50"  },
+    ];
+  } else {
+    IIS [] test_data = [
+      { -503,50,"-503/50" },
+      { -3,50, "-3/50"},
+      { 0,1,"0" },
+      { 3,50, "3/50"  },
+      { 503,50,"503/50"  },
+    ];
+  }
+  th.TestCase("Fraction toString");
 
-  for(int i=0;i<test_inequality_data.length;i++) {
-    f1.set(test_inequality_data[i][0],test_inequality_data[i][1]);
-    f2.set(test_inequality_data[i][2],test_inequality_data[i][3]);
-    th.Test(format(" (%s/%s) != (%s/%s)",test_inequality_data[i][0],test_inequality_data[i][1],test_inequality_data[i][2],
-        test_inequality_data[i][3]),(f1!=f2),cast(bool)test_inequality_data[i][4]);
+  foreach(td; test_data) {
+    auto f = new FractionType(td.n,td.d);
+    writeln(is(typeof(f)==MixedFraction));
+    th.Test(format("%s(%s,%s).toString() = \"%s\"",ftname,td.n,td.d,td.s),f.toString() == td.s);
   }
 }
 
-void test_less_than()
+
+struct FFB {
+  FractionType f1;
+  FractionType f2;
+  bool expected;
+}
+
+void test_fraction_equal_fraction()
 {
-  int [][] test_less_than_data = [
-    [0,1,0,1,0],
-    [0,1,1,2,1],
-    [2,3,-2,3,0],
-    [2,3,16,24,0],
-    [1,3,1,3,0],
-    [-5,7,25,35,1]
+  FFB [] test_data = [
+    { new FractionType(0,1),new FractionType(0,1),true},
+    { new FractionType(0,1),new FractionType(1,2),false},
+    { new FractionType(2,3),new FractionType(-2,3),false},
+    { new FractionType(2,3),new FractionType(2,3),true},
+    { new FractionType(1,3),new FractionType(1,3),true},
+    { new FractionType(-5,7),new FractionType(5,7),false},
   ];
-  th.TestCase("Less than");
-  Fraction f1=new Fraction;
-  Fraction f2=new Fraction;
+  th.TestCase("Fraction equal Fraction");
 
-  for(int i=0;i<test_less_than_data.length;i++) {
-    f1.set(test_less_than_data[i][0],test_less_than_data[i][1]);
-    f2.set(test_less_than_data[i][2],test_less_than_data[i][3]);
-    th.Test(format(" (%s/%s) < (%s/%s)",test_less_than_data[i][0],test_less_than_data[i][1],test_less_than_data[i][2],
-        test_less_than_data[i][3]),(f1<f2),cast(bool)test_less_than_data[i][4]);
+  foreach (td; test_data) {
+    th.Test(format(" (%s) == (%s) - %s",td.f1,td.f2,td.expected),(td.f1 == td.f2) == td.expected);
   }
-
 }
 
-void test_less_than_equal()
+void test_fraction_not_equal_fraction()
 {
-  int [][] test_less_than_equal_data = [
-    [0,1,0,1,1],
-    [0,1,1,2,1],
-    [2,3,-2,3,0],
-    [2,3,16,24,1],
-    [1,3,1,3,1],
-    [-5,7,25,35,1]
+  FFB [] test_data = [
+    { new FractionType(0,1),new FractionType(0,1),false},
+    { new FractionType(0,1),new FractionType(1,2),true},
+    { new FractionType(2,3),new FractionType(-2,3),true},
+    { new FractionType(2,3),new FractionType(2,3),false},
+    { new FractionType(1,3),new FractionType(1,3),false},
+    { new FractionType(-5,7),new FractionType(5,7),true},
   ];
-  th.TestCase("Less than or equal");
-  Fraction f1=new Fraction;
-  Fraction f2=new Fraction;
-
-  for(int i=0;i<test_less_than_equal_data.length;i++) {
-    f1.set(test_less_than_equal_data[i][0],test_less_than_equal_data[i][1]);
-    f2.set(test_less_than_equal_data[i][2],test_less_than_equal_data[i][3]);
-    th.Test(format(" (%s/%s) <= (%s/%s)",test_less_than_equal_data[i][0],test_less_than_equal_data[i][1],test_less_than_equal_data[i][2],
-        test_less_than_equal_data[i][3]),(f1<=f2),cast(bool)test_less_than_equal_data[i][4]);
+  th.TestCase("Fraction not equal Fraction");
+  foreach (td; test_data) {
+    th.Test(format(" (%s) != (%s) - %s",td.f1,td.f2,td.expected),(td.f1 != td.f2) == td.expected);
   }
 
 }
 
-void test_greater_than()
+void test_fraction_less_than_fraction()
 {
-  int [][] test_greater_than_data = [
-    [0,1,0,1,0],
-    [0,1,1,2,0],
-    [2,3,-2,3,1],
-    [2,3,16,24,0],
-    [1,3,1,3,0],
-    [-5,7,25,35,0]
+  FFB [] test_data = [
+    { new FractionType(0,1),new FractionType(0,1),false},
+    { new FractionType(0,1),new FractionType(1,2),true},
+    { new FractionType(2,3),new FractionType(-2,3),false},
+    { new FractionType(2,3),new FractionType(2,3),false},
+    { new FractionType(1,3),new FractionType(1,3),false},
+    { new FractionType(-5,7),new FractionType(5,7),true},
   ];
-  th.TestCase("Greater than");
-  Fraction f1=new Fraction;
-  Fraction f2=new Fraction;
-
-  for(int i=0;i<test_greater_than_data.length;i++) {
-    f1.set(test_greater_than_data[i][0],test_greater_than_data[i][1]);
-    f2.set(test_greater_than_data[i][2],test_greater_than_data[i][3]);
-    th.Test(format(" (%s/%s) > (%s/%s)",test_greater_than_data[i][0],test_greater_than_data[i][1],test_greater_than_data[i][2],
-        test_greater_than_data[i][3]),(f1>f2),cast(bool)test_greater_than_data[i][4]);
+  th.TestCase("Fraction less than fraction");
+  foreach (td; test_data) {
+    th.Test(format(" (%s) < (%s) - %s",td.f1,td.f2,td.expected),(td.f1 < td.f2) == td.expected);
   }
-
 }
 
-void test_greater_than_equal()
+void test_fraction_less_than_equal_fraction()
 {
-  int [][] test_greater_than_equal_data = [
-    [0,1,0,1,1],
-    [0,1,1,2,0],
-    [2,3,-2,3,1],
-    [2,3,16,24,1],
-    [1,3,1,3,1],
-    [-5,7,25,35,0]
+  FFB [] test_data = [
+    { new FractionType(0,1),new FractionType(0,1),true},
+    { new FractionType(0,1),new FractionType(1,2),true},
+    { new FractionType(2,3),new FractionType(-2,3),false},
+    { new FractionType(2,3),new FractionType(2,3),true},
+    { new FractionType(1,3),new FractionType(1,3),true},
+    { new FractionType(-5,7),new FractionType(5,7),true},
   ];
-  th.TestCase("Greater than or equal");
-  Fraction f1=new Fraction;
-  Fraction f2=new Fraction;
-
-  for(int i=0;i<test_greater_than_equal_data.length;i++) {
-    f1.set(test_greater_than_equal_data[i][0],test_greater_than_equal_data[i][1]);
-    f2.set(test_greater_than_equal_data[i][2],test_greater_than_equal_data[i][3]);
-    th.Test(format(" (%s/%s) >= (%s/%s)",test_greater_than_equal_data[i][0],test_greater_than_equal_data[i][1],test_greater_than_equal_data[i][2],
-        test_greater_than_equal_data[i][3]),(f1>=f2),cast(bool)test_greater_than_equal_data[i][4]);
+  th.TestCase("Fraction less than or equal fraction");
+  foreach (td; test_data) {
+    th.Test(format(" (%s) <= (%s) - %s",td.f1,td.f2,td.expected),(td.f1 <= td.f2) == td.expected);
   }
-
 }
 
+void test_fraction_greater_than_fraction()
+{
+  FFB [] test_data = [
+    { new FractionType(0,1),new FractionType(0,1),false},
+    { new FractionType(0,1),new FractionType(1,2),false},
+    { new FractionType(2,3),new FractionType(-2,3),true},
+    { new FractionType(2,3),new FractionType(2,3),false},
+    { new FractionType(1,3),new FractionType(1,3),false},
+    { new FractionType(-5,7),new FractionType(5,7),false},
+  ];
+  th.TestCase("Fraction greater than fraction");
+  foreach (td; test_data) {
+    th.Test(format(" (%s) > (%s) - %s",td.f1,td.f2,td.expected),(td.f1 > td.f2) == td.expected);
+  }
+}
+
+void test_fraction_greater_than_equal_fraction()
+{
+  FFB [] test_data = [
+    { new FractionType(0,1),new FractionType(0,1),true},
+    { new FractionType(0,1),new FractionType(1,2),false},
+    { new FractionType(2,3),new FractionType(-2,3),true},
+    { new FractionType(2,3),new FractionType(2,3),true},
+    { new FractionType(1,3),new FractionType(1,3),true},
+    { new FractionType(-5,7),new FractionType(5,7),false},
+  ];
+  th.TestCase("Fracton greater than or equal fraction");
+  foreach (td; test_data) {
+    th.Test(format(" (%s) >= (%s) - %s",td.f1,td.f2,td.expected),(td.f1 >= td.f2) == td.expected);
+  }
+}
+
+struct FD
+{
+  FractionType f;
+  double d;
+}
 void test_cast_to_double()
 {
-  Fraction f=new Fraction;
+  th.TestCase("Fraction cast to double");
+  FD [] test_data = [
+    { new FractionType(0,1), 0.0 },
+    { new FractionType(1,1), 1.0 },
+    { new FractionType(-1,1), -1.0 },
+    { new FractionType(-3,50), -0.06 },
+    { new FractionType(49,4), 12.25 },
+  ];
 
-  th.TestCase("Fraction to double");
-  int [][] test_to_double_input = [ [0,1], [1,1], [-1,1] , [-3,50], [49,4 ] ];
-  double [] test_to_double_output = [ 0.0, 1.0, -1.0, -0.06, 12.25 ];
-
-  for(int i=0;i<test_to_double_input.length;i++) {
-    f.set(test_to_double_input[i][0],test_to_double_input[i][1]);
-    th.Test(format("%s/%s = %s",test_to_double_input[i][0],test_to_double_input[i][1],test_to_double_output[i]),
-          fabs(cast(double)f - test_to_double_output[i]) < f.epsilon);
+  foreach (td; test_data) {
+    th.Test(format("(%s) = %s",td.f,td.d),fabs(cast(double)td.f - td.d) < FractionType.epsilon);
   }
 }
 
-void test_equal_to_double()
+struct FDB {
+  FractionType f;
+  double d;
+  bool expected;
+}
+void test_fraction_equal_to_double()
 {
-  int [][] test_equality_data = [
-    [0,1,0,1,1],
-    [0,1,1,2,0],
-    [2,3,-2,3,0],
-    [2,3,16,24,1],
-    [1,3,1,3,1],
-    [-5,7,25,35,0]
+  FDB [] test_data = [
+    {new FractionType(0,1),(0/1.0),true},
+    {new FractionType(0,1),(1.0/2),false},
+    {new FractionType(2,3),(-2.0/3),false},
+    {new FractionType(2,3),(2.0/3),true},
+    {new FractionType(1,3),(1.0/3),true},
+    {new FractionType(-5,7),(5.0/7),false},
   ];
   th.TestCase("Fraction equal to double");
-  Fraction f=new Fraction;
-  double d;
 
-  for(int i=0;i<test_equality_data.length;i++) {
-    f.set(test_equality_data[i][0],test_equality_data[i][1]);
-    d=cast(double)test_equality_data[i][2]/cast(double)test_equality_data[i][3];
-    th.Test(format(" (%s/%s) == %s",test_equality_data[i][0],test_equality_data[i][1],d),f==d,cast(bool)test_equality_data[i][4]);
+  foreach( td; test_data) {
+    th.Test(format(" (%s) == %s - %s",td.f,td.d,td.expected),(td.f==td.d) == td.expected);
   }
 }
 
-void test_not_equal_double()
+void test_fraction_not_equal_double()
 {
-  int [][] test_inequality_data = [
-    [0,1,0,1,0],
-    [0,1,1,2,1],
-    [2,3,-2,3,1],
-    [2,3,16,24,0],
-    [1,3,1,3,0],
-    [-5,7,25,35,1]
+  FDB [] test_data = [
+    {new FractionType(0,1),(0/1.0),false},
+    {new FractionType(0,1),(1.0/2),true},
+    {new FractionType(2,3),(-2.0/3),true},
+    {new FractionType(2,3),(2.0/3),false},
+    {new FractionType(1,3),(1.0/3),false},
+    {new FractionType(-5,7),(5.0/7),true},
   ];
   th.TestCase("Fraction not equal double");
-  Fraction f=new Fraction;
-  double d;
 
-  for(int i=0;i<test_inequality_data.length;i++) {
-    f.set(test_inequality_data[i][0],test_inequality_data[i][1]);
-    d=cast(double)test_inequality_data[i][2]/cast(double)test_inequality_data[i][3];
-    th.Test(format(" (%s/%s) != %s",test_inequality_data[i][0],test_inequality_data[i][1],d),f!=d,cast(bool)test_inequality_data[i][4]);
+  foreach( td; test_data) {
+    th.Test(format(" (%s) == %s - %s",td.f,td.d,td.expected),(td.f!=td.d) == td.expected);
   }
 }
 
-void test_less_than_double()
+void test_fraction_less_than_double()
 {
-  int [][] test_less_than_data = [
-    [0,1,0,1,0],
-    [0,1,1,2,1],
-    [2,3,-2,3,0],
-    [2,3,16,24,0],
-    [1,3,1,3,0],
-    [-5,7,25,35,1]
+  FDB [] test_data = [
+    {new FractionType(0,1),(0/1.0),false},
+    {new FractionType(0,1),(1.0/2),true},
+    {new FractionType(2,3),(-2.0/3),false},
+    {new FractionType(2,3),(2.0/3),false},
+    {new FractionType(1,3),(1.0/3),false},
+    {new FractionType(-5,7),(5.0/7),true},
   ];
   th.TestCase("Fraction less than double");
-  Fraction f=new Fraction;
-  double d;
 
-  for(int i=0;i<test_less_than_data.length;i++) {
-    f.set(test_less_than_data[i][0],test_less_than_data[i][1]);
-    d=cast(double)test_less_than_data[i][2]/cast(double)test_less_than_data[i][3];
-    th.Test(format(" (%s/%s) < %s",test_less_than_data[i][0],test_less_than_data[i][1],d),f<d,cast(bool)test_less_than_data[i][4]);
+  foreach( td; test_data) {
+    th.Test(format(" (%s) == %s - %s",td.f,td.d,td.expected),(td.f<td.d) == td.expected);
   }
-
 }
 
-void test_less_than_equal_double()
+void test_fraction_less_than_equal_double()
 {
-  int [][] test_less_than_equal_data = [
-    [0,1,0,1,1],
-    [0,1,1,2,1],
-    [2,3,-2,3,0],
-    [2,3,16,24,1],
-    [1,3,1,3,1],
-    [-5,7,25,35,1]
+  FDB [] test_data = [
+    {new FractionType(0,1),(0/1.0),true},
+    {new FractionType(0,1),(1.0/2),true},
+    {new FractionType(2,3),(-2.0/3),false},
+    {new FractionType(2,3),(2.0/3),true},
+    {new FractionType(1,3),(1.0/3),true},
+    {new FractionType(-5,7),(5.0/7),true},
   ];
   th.TestCase("Fraction less than or equal to double");
-  Fraction f=new Fraction;
-  double d;
 
-  for(int i=0;i<test_less_than_equal_data.length;i++) {
-    f.set(test_less_than_equal_data[i][0],test_less_than_equal_data[i][1]);
-    d=cast(double)test_less_than_equal_data[i][2]/cast(double)test_less_than_equal_data[i][3];
-    if(test_less_than_equal_data[i][4]==1)
-    th.Test(format(" (%s/%s) <= %s",test_less_than_equal_data[i][0],test_less_than_equal_data[i][1],d),f<=d,cast(bool)test_less_than_equal_data[i][4]);
+  foreach( td; test_data) {
+    th.Test(format(" (%s) == %s - %s",td.f,td.d,td.expected),(td.f<=td.d) == td.expected);
   }
-
 }
 
-void test_greater_than_double()
+void test_fraction_greater_than_double()
 {
-  int [][] test_greater_than_data = [
-    [0,1,0,1,0],
-    [0,1,1,2,0],
-    [2,3,-2,3,1],
-    [2,3,16,24,0],
-    [1,3,1,3,0],
-    [-5,7,25,35,0]
+  FDB [] test_data = [
+    {new FractionType(0,1),(0/1.0),false},
+    {new FractionType(0,1),(1.0/2),false},
+    {new FractionType(2,3),(-2.0/3),true},
+    {new FractionType(2,3),(2.0/3),false},
+    {new FractionType(1,3),(1.0/3),false},
+    {new FractionType(-5,7),(5.0/7),false},
   ];
   th.TestCase("Fraction greater than double");
-  Fraction f=new Fraction;
-  double d;
+  foreach( td; test_data) {
+    th.Test(format(" (%s) == %s - %s",td.f,td.d,td.expected),(td.f>td.d) == td.expected);
+  }
+}
 
-  for(int i=0;i<test_greater_than_data.length;i++) {
-    f.set(test_greater_than_data[i][0],test_greater_than_data[i][1]);
-    d=cast(double)test_greater_than_data[i][2]/cast(double)test_greater_than_data[i][3];
-    th.Test(format(" (%s/%s) > %s",test_greater_than_data[i][0],test_greater_than_data[i][1],d),f>d,cast(bool)test_greater_than_data[i][4]);
+void test_fraction_greater_than_equal_double()
+{
+  FDB [] test_data = [
+    {new FractionType(0,1),(0/1.0),true},
+    {new FractionType(0,1),(1.0/2),false},
+    {new FractionType(2,3),(-2.0/3),true},
+    {new FractionType(2,3),(2.0/3),true},
+    {new FractionType(1,3),(1.0/3),true},
+    {new FractionType(-5,7),(5.0/7),false},
+  ];
+  th.TestCase("Fraction greater than or equal to double");
+
+  th.TestCase("Fraction greater than double");
+  foreach( td; test_data) {
+    th.Test(format(" (%s) == %s - %s",td.f,td.d,td.expected),(td.f>=td.d) == td.expected);
   }
 
 }
 
-void test_greater_than_equal_double()
-{
-  int [][] test_greater_than_equal_data = [
-    [0,1,0,1,1],
-    [0,1,1,2,0],
-    [2,3,-2,3,1],
-    [2,3,16,24,1],
-    [1,3,1,3,1],
-    [-5,7,25,35,0]
-  ];
-  th.TestCase("Fraction greater than or equal to double");
-  Fraction f=new Fraction;
+struct DFB {
   double d;
-
-  for(int i=0;i<test_greater_than_equal_data.length;i++) {
-    f.set(test_greater_than_equal_data[i][0],test_greater_than_equal_data[i][1]);
-    d=cast(double)test_greater_than_equal_data[i][2]/cast(double)test_greater_than_equal_data[i][3];
-    th.Test(format(" (%s/%s) >= %s",test_greater_than_equal_data[i][0],test_greater_than_equal_data[i][1],d),f>=d,cast(bool)test_greater_than_equal_data[i][4]);
-  }
-
+  FractionType f;
+  bool expected;
 }
 
 void test_double_equal_to_fraction()
 {
-  int [][] test_data = [
-    [0,1,0,1,1],
-    [0,1,1,2,0],
-    [2,3,-2,3,0],
-    [2,3,16,24,1],
-    [1,3,1,3,1],
-    [-5,7,25,35,0]
+  DFB [] test_data = [
+    { 0.0, new FractionType(0,1),true},
+    { 0.0/1.0, new FractionType(1,2),false},
+    { 2.0/3.0, new FractionType(-2,3),false},
+    { 2.0/3, new FractionType(2,3),true},
+    { 1.0/3, new FractionType(1,3),true},
+    { -5.0/7, new FractionType(5,7),false},
   ];
   th.TestCase("Fraction equal to double");
-  double d;
-  Fraction f=new Fraction;
-
-  for(int i=0;i<test_data.length;i++) {
-    d=cast(double)test_data[i][0]/cast(double)test_data[i][1];
-    f.set(test_data[i][2],cast(double)test_data[i][3]);
-    th.Test(format(" %s == (%s/%s)",d,test_data[i][2],test_data[i][3]),d==f,cast(bool)test_data[i][4]);
+  foreach( td; test_data) {
+    th.Test(format(" %s == (%s) - %s",td.d,td.f,td.expected),(td.d==td.f) == td.expected);
   }
+
 }
 
 void test_double_not_equal_to_fraction()
 {
-  int [][] test_data = [
-    [0,1,0,1,0],
-    [0,1,1,2,1],
-    [2,3,-2,3,1],
-    [2,3,16,24,0],
-    [1,3,1,3,0],
-    [-5,7,25,35,1]
+  DFB [] test_data = [
+    { 0.0, new FractionType(0,1),false},
+    { 0.0/1.0, new FractionType(1,2),true},
+    { 2.0/3.0, new FractionType(-2,3),true},
+    { 2.0/3, new FractionType(2,3),false},
+    { 1.0/3, new FractionType(1,3),false},
+    { -5.0/7, new FractionType(5,7),true},
   ];
-  th.TestCase("Fraction inequality");
-  double d;
-  Fraction f=new Fraction;
-
-  for(int i=0;i<test_data.length;i++) {
-    d=cast(double)test_data[i][0]/cast(double)test_data[i][1];
-    f.set(test_data[i][2],test_data[i][3]);
-    th.Test(format(" %s != (%s/%s)",d,test_data[i][2],test_data[i][3]),d!=f,cast(bool)test_data[i][4]);
+  th.TestCase("Double not equal Fraction");
+  foreach( td; test_data) {
+    th.Test(format(" %s != (%s) - %s",td.d,td.f,td.expected),(td.d!=td.f) == td.expected);
   }
 }
 
 void test_double_less_than_fraction()
 {
-  int [][] test_data = [
-    [0,1,0,1,0],
-    [0,1,1,2,1],
-    [2,3,-2,3,0],
-    [2,3,16,24,0],
-    [1,3,1,3,0],
-    [-5,7,25,35,1]
+  DFB [] test_data = [
+    { 0.0, new FractionType(0,1),false},
+    { 0.0/1.0, new FractionType(1,2),true},
+    { 2.0/3.0, new FractionType(-2,3),false},
+    { 2.0/3, new FractionType(2,3),false},
+    { 1.0/3, new FractionType(1,3),false},
+    { -5.0/7, new FractionType(5,7),true},
   ];
-  th.TestCase("Less than");
-  double d;
-  Fraction f=new Fraction;
+  th.TestCase("Double Less than fraction");
 
-  for(int i=0;i<test_data.length;i++) {
-    d = cast(double)test_data[i][0]/test_data[i][1];
-    f.set(test_data[i][2],test_data[i][3]);
-    th.Test(format(" %s < (%s/%s)",d,test_data[i][2],test_data[i][3]),d<f,cast(bool)test_data[i][4]);
+  foreach( td; test_data) {
+    th.Test(format(" %s < (%s) - %s",td.d,td.f,td.expected),(td.d<td.f) == td.expected);
   }
 
 }
 
 void test_double_less_than_equal_fraction()
 {
-  int [][] test_data = [
-    [0,1,0,1,1],
-    [0,1,1,2,1],
-    [2,3,-2,3,0],
-    [2,3,16,24,1],
-    [1,3,1,3,1],
-    [-5,7,25,35,1]
+  DFB [] test_data = [
+    { 0.0, new FractionType(0,1),true},
+    { 0.0/1.0, new FractionType(1,2),true},
+    { 2.0/3.0, new FractionType(-2,3),false},
+    { 2.0/3, new FractionType(2,3),true},
+    { 1.0/3, new FractionType(1,3),true},
+    { -5.0/7, new FractionType(5,7),true},
   ];
-  th.TestCase("Less than or equal");
-  double d;
-  Fraction f=new Fraction;
+  th.TestCase("Double less than or equal to fraction");
 
-  for(int i=0;i<test_data.length;i++) {
-    d=cast(double)test_data[i][0]/cast(double)test_data[i][1];
-    f.set(test_data[i][2],test_data[i][3]);
-    th.Test(format(" %s <= (%s/%s)",d,test_data[i][2],test_data[i][3]),d<=f,cast(bool)test_data[i][4]);
+  foreach( td; test_data) {
+    th.Test(format(" %s <= (%s) - %s",td.d,td.f,td.expected),(td.d<=td.f) == td.expected);
   }
-
 }
 
 void test_double_greater_than_fraction()
 {
-  int [][] test_data = [
-    [0,1,0,1,0],
-    [0,1,1,2,0],
-    [2,3,-2,3,1],
-    [2,3,16,24,0],
-    [1,3,1,3,0],
-    [-5,7,25,35,0]
+  DFB [] test_data = [
+    { 0.0, new FractionType(0,1),false},
+    { 0.0/1.0, new FractionType(1,2),false},
+    { 2.0/3.0, new FractionType(-2,3),true},
+    { 2.0/3, new FractionType(2,3),false},
+    { 1.0/3, new FractionType(1,3),false},
+    { -5.0/7, new FractionType(5,7),false},
   ];
-  th.TestCase("Greater than");
-  double d;
-  Fraction f=new Fraction;
-
-  for(int i=0;i<test_data.length;i++) {
-    d=cast(double)test_data[i][0]/cast(double)test_data[i][1];
-    f.set(test_data[i][2],test_data[i][3]);
-    th.Test(format(" %s > (%s/%s)",d,test_data[i][2],test_data[i][3]),d>f,cast(bool)test_data[i][4]);
+  th.TestCase("Double greater than fraction");
+  foreach( td; test_data) {
+    th.Test(format(" %s > (%s) - %s",td.d,td.f,td.expected),(td.d>td.f) == td.expected);
   }
-
 }
 
 void test_double_greater_than_equal_fraction()
 {
-  int [][] test_data = [
-    [0,1,0,1,1],
-    [0,1,1,2,0],
-    [2,3,-2,3,1],
-    [2,3,16,24,1],
-    [1,3,1,3,1],
-    [-5,7,25,35,0]
+  DFB [] test_data = [
+    { 0.0, new FractionType(0,1),true},
+    { 0.0/1.0, new FractionType(1,2),false},
+    { 2.0/3.0, new FractionType(-2,3),true},
+    { 2.0/3, new FractionType(2,3),true},
+    { 1.0/3, new FractionType(1,3),true},
+    { -5.0/7, new FractionType(5,7),false},
   ];
-  th.TestCase("Greater than or equal");
+  th.TestCase("Double greater than or equal to fraction");
+  foreach( td; test_data) {
+    th.Test(format(" %s >= (%s) - %s",td.d,td.f,td.expected),(td.d>=td.f) == td.expected);
+  }
+
+}
+
+struct FFF {
+  FractionType f1;
+  FractionType f2;
+  FractionType f3;
+}
+void test_fraction_plus_fraction()
+{
+  FFF [] test_data = [
+    { new FractionType(0,1),new FractionType(0,1),new FractionType(0,1)},
+    { new FractionType(0,1),new FractionType(1,1),new FractionType(1,1)},
+    { new FractionType(3,5),new FractionType(-2,9),new FractionType(17,45)},
+    { new FractionType(-1,4),new FractionType(-3,4),new FractionType(-1,1)},
+    { new FractionType(7,3),new FractionType(10,7),new FractionType(79,21)},
+    { new FractionType(-5,7),new FractionType(5,7),new FractionType(0,1)},
+  ];
+
+  th.TestCase("Fraction plus fraction");
+  foreach (td; test_data) {
+    auto f = td.f1+td.f2;
+    th.Test(format("(%s) + (%s) = (%s)",td.f1,td.f2,td.f3),(f == td.f3) && is(typeof(f) == FractionType));
+  }
+}
+
+void test_fraction_minus_fraction()
+{
+  FFF [] test_data = [
+    { new FractionType(0,1),new FractionType(0,1),new FractionType(0,1)},
+    { new FractionType(0,1),new FractionType(1,1),new FractionType(-1,1)},
+    { new FractionType(3,5),new FractionType(-2,9),new FractionType(37,45)},
+    { new FractionType(-1,4),new FractionType(-3,4),new FractionType(1,2)},
+    { new FractionType(7,3),new FractionType(10,7),new FractionType(19,21)},
+    { new FractionType(-5,7),new FractionType(5,7),new FractionType(-10,7)},
+  ];
+
+  th.TestCase("Fraction minus fraction");
+  foreach (td; test_data) {
+    auto f = td.f1-td.f2;
+    th.Test(format("(%s) - (%s) = (%s)",td.f1,td.f2,td.f3),f == td.f3 && is(typeof(f) == FractionType));
+  }
+}
+
+void test_fraction_times_fraction()
+{
+  FFF [] test_data = [
+    { new FractionType(0,1),new FractionType(0,1),new FractionType(0,1)},
+    { new FractionType(0,1),new FractionType(1,1),new FractionType(0,1)},
+    { new FractionType(3,5),new FractionType(-2,9),new FractionType(-2,15)},
+    { new FractionType(-1,4),new FractionType(-3,4),new FractionType(3,16)},
+    { new FractionType(7,3),new FractionType(10,7),new FractionType(10,3)},
+    { new FractionType(-5,7),new FractionType(5,7),new FractionType(-25,49)},
+  ];
+
+  th.TestCase("Fraction times fraction");
+  foreach (td; test_data) {
+    auto f = td.f1*td.f2;
+    th.Test(format("(%s) * (%s) = (%s)",td.f1,td.f2,td.f3),f == td.f3 && is(typeof(f) == FractionType));
+  }
+}
+
+void test_fraction_divided_by_fraction()
+{
+  FFF [] test_data = [
+    { new FractionType(0,1),new FractionType(1,1),new FractionType(0,1)},
+    { new FractionType(3,5),new FractionType(-2,9),new FractionType(-27,10)},
+    { new FractionType(-1,4),new FractionType(-3,4),new FractionType(1,3)},
+    { new FractionType(7,3),new FractionType(10,7),new FractionType(49,30)},
+    { new FractionType(-5,7),new FractionType(5,7),new FractionType(-1,1)},
+  ];
+
+  th.TestCase("Fraction divided by fraction");
+  foreach (td; test_data) {
+    auto f = td.f1/td.f2;
+    th.Test(format("(%s) / (%s) = (%s)",td.f1,td.f2,td.f3),f == td.f3 && is(typeof(f) == FractionType));
+  }
+}
+
+void test_fraction_power_fraction()
+{
+  FFF [] test_data = [
+    { new FractionType(0,1),new FractionType(1,1),new FractionType(0,1)},
+    { new FractionType(3,5),new FractionType(-2,9),new FractionType(643,574)},
+    { new FractionType(1,4),new FractionType(-3,4),new FractionType(577,204)},
+    { new FractionType(7,3),new FractionType(10,7),new FractionType(1399,417)},
+    { new FractionType(-5,7),new FractionType(5,1),new FractionType(-37,199)},
+  ];
+
+  th.TestCase("Fraction to power of fraction");
+  foreach (td; test_data) {
+    auto f = td.f1^^td.f2;
+    th.Test(format("(%s) ^^ (%s) = (%s)",td.f1,td.f2,td.f3),f == td.f3 && is(typeof(f) == FractionType));
+  }
+}
+
+struct FDF {
+  FractionType f1;
   double d;
-  Fraction f=new Fraction;
-
-  for(int i=0;i<test_data.length;i++) {
-    d=cast(double)test_data[i][0]/cast(double)test_data[i][1];
-    f.set(test_data[i][2],test_data[i][3]);
-    th.Test(format(" %s >= (%s/%s)",d,test_data[i][2],test_data[i][3]),d>=f,cast(bool)test_data[i][4]);
-  }
-
+  FractionType f2;
 }
 
-void test_fraction_addition()
+void test_fraction_plus_double()
 {
-  int [][] test_addition_data =
-  [
-    [0,1,0,1,0,1],
-    [0,1,1,1,1,1],
-    [3,5,-2,9,17,45],
-    [-2,8,-6,8,-1,1],
-    [7,3,10,7,79,21],
-    [-5,7,25,35,0,1]
+  FDF [] test_data = [
+    { new FractionType(0,1), 0.0/1.0,new FractionType(0,1) },
+    { new FractionType(0,1), 1.0/1.0,new FractionType(1,1) },
+    { new FractionType(3,5), -2.0/9,new FractionType(17,45) },
+    { new FractionType(-1,4), -3.0/4.0,new FractionType(-1,1) },
+    { new FractionType(7,3), 10.0/7.0,new FractionType(79,21) },
+    { new FractionType(-5,7), 5.0/7.0,new FractionType(0,1) },
+  ];
+  th.TestCase("Fraction plus double");
+  foreach (td; test_data) {
+    auto f = td.f1+td.d;
+    th.Test(format("(%s) / (%s) = (%s)",td.f1,td.d,td.f2),f == td.f2 && is(typeof(f) == FractionType));
+  }
+}
+
+void test_fraction_minus_double()
+{
+  FDF [] test_data = [
+    { new FractionType(0,1), 0.0/1.0,new FractionType(0,1) },
+    { new FractionType(0,1), 1.0/1.0,new FractionType(-1,1) },
+    { new FractionType(3,5), -2.0/9,new FractionType(37,45) },
+    { new FractionType(-1,4), -3.0/4.0,new FractionType(1,2) },
+    { new FractionType(7,3), 10.0/7.0,new FractionType(19,21) },
+    { new FractionType(-5,7), 5.0/7.0,new FractionType(-10,7) },
+  ];
+  th.TestCase("Fraction minus double");
+  foreach (td; test_data) {
+    auto f = td.f1-td.d;
+    writeln(f);
+    th.Test(format("(%s) - (%s) = (%s)",td.f1,td.d,td.f2),f == td.f2 && is(typeof(f) == FractionType));
+  }
+}
+
+void test_fraction_times_double()
+{
+  FDF [] test_data = [
+    { new FractionType(0,1), 0.0/1.0,new FractionType(0,1) },
+    { new FractionType(0,1), 1.0/1.0,new FractionType(0,1) },
+    { new FractionType(3,5), -2.0/9,new FractionType(-2,15) },
+    { new FractionType(-1,4), -3.0/4.0,new FractionType(3,16) },
+    { new FractionType(7,3), 10.0/7.0,new FractionType(10,3) },
+    { new FractionType(-5,7), 5.0/7.0,new FractionType(-25,49) },
+  ];
+  th.TestCase("Fraction times double");
+  foreach (td; test_data) {
+    auto f = td.f1*td.d;
+    th.Test(format("(%s) * (%s) = (%s)",td.f1,td.d,td.f2),f == td.f2 && is(typeof(f) == FractionType));
+  }
+}
+
+void test_fraction_divided_by_double()
+{
+  FDF [] test_data = [
+    { new FractionType(0,1), 1.0/1.0,new FractionType(0,1) },
+    { new FractionType(3,5), -2.0/9,new FractionType(-27,10) },
+    { new FractionType(-1,4), -3.0/4.0,new FractionType(1,3) },
+    { new FractionType(7,3), 10.0/7.0,new FractionType(49,30) },
+    { new FractionType(-5,7), 5.0/7.0,new FractionType(-1,1) },
+  ];
+  th.TestCase("Fraction divided by double");
+  foreach (td; test_data) {
+    auto f = td.f1/td.d;
+    th.Test(format("(%s) / (%s) = (%s)",td.f1,td.d,td.f2),f == td.f2 && is(typeof(f) == FractionType));
+  }
+}
+
+void test_fraction_power_double()
+{
+  FDF [] test_data = [
+    { new FractionType(0,1),1.0,new FractionType(0,1)},
+    { new FractionType(3,5),-2.0/9,new FractionType(643,574)},
+    { new FractionType(1,4),-3.0/4,new FractionType(577,204)},
+    { new FractionType(7,3),10.0/7,new FractionType(1399,417)},
+    { new FractionType(-5,7),5.0,new FractionType(-37,199)},
   ];
 
-  th.TestCase("Fraction addition");
-  Fraction f1=new Fraction;
-  Fraction f2=new Fraction;
-  Fraction f3;
-
-  for(int i=0;i<test_addition_data.length;i++) {
-    f1.set(test_addition_data[i][0],test_addition_data[i][1]);
-    f2.set(test_addition_data[i][2],test_addition_data[i][3]);
-    f3=f1+f2;
-    th.Test(format("%s/%s + %s/%s = %s/%s",test_addition_data[i][0],test_addition_data[i][1],
-          test_addition_data[i][2],test_addition_data[i][3],
-          test_addition_data[i][4],test_addition_data[i][5]),
-          f3.numerator()==test_addition_data[i][4] && f3.denominator()==test_addition_data[i][5]);
+  th.TestCase("Fraction to power of double");
+  foreach (td; test_data) {
+    auto f = td.f1^^td.d;
+    th.Test(format("(%s) ^^ (%s) = (%s)",td.f1,td.d,td.f2),f == td.f2 && is(typeof(f) == FractionType));
   }
 }
 
-void test_fraction_subtraction()
-{
-  int [][] test_subtraction_data =
-  [
-    [0,1,0,1,0,1],
-    [0,1,1,1,-1,1],
-    [3,5,-2,9,37,45],
-    [-2,8,-6,8,1,2],
-    [7,3,10,7,19,21],
-    [-5,7,25,35,-10,7]
-  ];
-
-  th.TestCase("Fraction subtraction");
-  Fraction f1=new Fraction;
-  Fraction f2=new Fraction;
-  Fraction f3;
-
-  for(int i=0;i<test_subtraction_data.length;i++) {
-    f1.set(test_subtraction_data[i][0],test_subtraction_data[i][1]);
-    f2.set(test_subtraction_data[i][2],test_subtraction_data[i][3]);
-    f3=f1-f2;
-    th.Test(format("%s/%s - %s/%s = %s/%s",test_subtraction_data[i][0],test_subtraction_data[i][1],
-          test_subtraction_data[i][2],test_subtraction_data[i][3],
-          test_subtraction_data[i][4],test_subtraction_data[i][5]),
-          f3.numerator()==test_subtraction_data[i][4] && f3.denominator()==test_subtraction_data[i][5]);
-  }
+struct DFD {
+  double d1;
+  FractionType f;
+  double d2;
 }
-
-void test_fraction_multiplication()
-{
-  int [][] test_multiplication_data =
-  [
-    [0,1,0,1,0,1],
-    [0,1,1,1,0,1],
-    [3,5,-2,9,-2,15],
-    [-2,8,-6,8,3,16],
-    [7,3,10,7,10,3],
-    [-5,7,25,35,-25,49]
-  ];
-
-  th.TestCase("Fraction multiplication");
-  Fraction f1=new Fraction;
-  Fraction f2=new Fraction;
-  Fraction f3;
-
-  for(int i=0;i<test_multiplication_data.length;i++) {
-    f1.set(test_multiplication_data[i][0],test_multiplication_data[i][1]);
-    f2.set(test_multiplication_data[i][2],test_multiplication_data[i][3]);
-    f3=f1*f2;
-    th.Test(format("(%s/%s) * (%s/%s) = %s/%s",test_multiplication_data[i][0],test_multiplication_data[i][1],
-          test_multiplication_data[i][2],test_multiplication_data[i][3],
-          test_multiplication_data[i][4],test_multiplication_data[i][5]),
-          f3.numerator()==test_multiplication_data[i][4] && f3.denominator()==test_multiplication_data[i][5]);
-  }
-}
-
-void test_fraction_division()
-{
-  int [][] test_division_data =
-  [
-    [0,1,1,1,0,1],
-    [3,5,-2,9,-27,10],
-    [-2,8,-6,8,1,3],
-    [7,3,10,7,49,30],
-    [-5,7,25,35,-1,1]
-  ];
-
-  th.TestCase("Fraction division");
-  Fraction f1=new Fraction;
-  Fraction f2=new Fraction;
-  Fraction f3;
-
-  for(int i=0;i<test_division_data.length;i++) {
-    f1.set(test_division_data[i][0],test_division_data[i][1]);
-    f2.set(test_division_data[i][2],test_division_data[i][3]);
-    f3=f1/f2;
-    th.Test(format("(%s/%s) / (%s/%s) = %s/%s",test_division_data[i][0],test_division_data[i][1],
-          test_division_data[i][2],test_division_data[i][3],
-          test_division_data[i][4],test_division_data[i][5]),
-          f3.numerator()==test_division_data[i][4] && f3.denominator()==test_division_data[i][5]);
-  }
-}
-
 void test_double_plus_fraction()
 {
-  int [][] test_data =
-  [
-    [0,1,0,1,0,1],
-    [0,1,1,1,1,1],
-    [3,5,-2,9,17,45],
-    [-2,8,-6,8,-1,1],
-    [7,3,10,7,79,21],
-    [-5,7,25,35,0,1]
+  DFD [] test_data = [
+    { 0.0/1, new FractionType(0,1),0.0/1 },
+    { 0.0/1, new FractionType(1,1),1.0/1 },
+    { 3.0/5, new FractionType(-2,9),17.0/45 },
+    { -1.0/4, new FractionType(-3,4),-1.0/1 },
+    { 7.0/3, new FractionType(10,7),79.0/21 },
+    { -5.0/7, new FractionType(5,7),0.0/1 },
   ];
 
   th.TestCase("double plus fraction");
-  Fraction f=new Fraction;
-  double d,d2,expected_result;
-
-  for(int i=0;i<test_data.length;i++) {
-    d=cast(double)test_data[i][0]/cast(double)test_data[i][1];
-    f.set(test_data[i][2],test_data[i][3]);
-    expected_result=cast(double)test_data[i][4]/cast(double)test_data[i][5];
-    d2=d+f;
-    th.Test(format("%s + (%s/%s) = %s",d,test_data[i][2],test_data[i][3],expected_result),fabs(expected_result - d2) < f.epsilon);
+  foreach (td; test_data) {
+    double d = td.d1+td.f;
+    th.Test(format("(%s) + (%s) = (%s)",td.d1,td.f,td.d2),(fabs(d - td.d2) < FractionType.epsilon) && is(typeof(d) == double));
   }
 }
 
 void test_double_minus_fraction()
 {
-  int [][] test_data =
-  [
-    [0,1,0,1,0,1],
-    [0,1,1,1,-1,1],
-    [3,5,-2,9,37,45],
-    [-2,8,-6,8,1,2],
-    [7,3,10,7,19,21],
-    [-5,7,25,35,-10,7]
+  DFD [] test_data = [
+    { 0.0/1, new FractionType(0,1),0.0/1 },
+    { 0.0/1, new FractionType(1,1),-1.0/1 },
+    { 3.0/5, new FractionType(-2,9),37.0/45 },
+    { -1.0/4, new FractionType(-3,4),1.0/2 },
+    { 7.0/3, new FractionType(10,7),19.0/21 },
+    { -5.0/7, new FractionType(5,7),-10.0/7 },
   ];
 
   th.TestCase("double minus fraction");
-  Fraction f=new Fraction;
-  double d,d2,expected_result;
-
-  for(int i=0;i<test_data.length;i++) {
-    d=cast(double)test_data[i][0]/cast(double)test_data[i][1];
-    f.set(test_data[i][2],test_data[i][3]);
-    expected_result=cast(double)test_data[i][4]/cast(double)test_data[i][5];
-    d2=d-f;
-    th.Test(format("%s - (%s/%s) = %s",d,test_data[i][2],test_data[i][3],expected_result),fabs(expected_result - d2) < f.epsilon);
+  foreach (td; test_data) {
+    auto d = td.d1-td.f;
+    writeln(d);
+    th.Test(format("(%s) - (%s) = (%s)",td.d1,td.f,td.d2),fabs(d - td.d2) < FractionType.epsilon);
   }
 }
 
 void test_double_times_fraction()
 {
-  int [][] test_data =
-  [
-    [0,1,0,1,0,1],
-    [0,1,1,1,0,1],
-    [3,5,-2,9,-2,15],
-    [-2,8,-6,8,3,16],
-    [7,3,10,7,10,3],
-    [-5,7,25,35,-25,49]
+  DFD [] test_data = [
+    { 0.0/1, new FractionType(0,1),0.0/1 },
+    { 0.0/1, new FractionType(1,1),0.0/1 },
+    { 3.0/5, new FractionType(-2,9),-2.0/15 },
+    { -1.0/4, new FractionType(-3,4),3.0/16 },
+    { 7.0/3, new FractionType(10,7),10.0/3 },
+    { -5.0/7, new FractionType(5,7),-25.0/49 },
   ];
 
   th.TestCase("double times fraction");
-  Fraction f=new Fraction;
-  double d,d2,expected_result;
-
-  for(int i=0;i<test_data.length;i++) {
-    d=cast(double)test_data[i][0]/cast(double)test_data[i][1];
-    f.set(test_data[i][2],test_data[i][3]);
-    expected_result=cast(double)test_data[i][4]/cast(double)test_data[i][5];
-    d2=d*f;
-    th.Test(format("%s * (%s/%s) = %s",d,test_data[i][2],test_data[i][3],expected_result),fabs(expected_result - d2) < f.epsilon);
+  foreach (td; test_data) {
+    auto d = td.d1*td.f;
+    th.Test(format("(%s) * (%s) = (%s)",td.d1,td.f,td.d2),fabs(d - td.d2) < FractionType.epsilon);
   }
 }
 
 void test_double_divided_by_fraction()
 {
-  int [][] test_data =
-  [
-    [0,1,1,1,0,1],
-    [3,5,-2,9,-27,10],
-    [-2,8,-6,8,1,3],
-    [7,3,10,7,49,30],
-    [-5,7,25,35,-1,1]
+  DFD [] test_data = [
+    { 0.0/1, new FractionType(1,1),0.0/1 },
+    { 3.0/5, new FractionType(-2,9),-27.0/10 },
+    { -1.0/4, new FractionType(-3,4),1.0/3 },
+    { 7.0/3, new FractionType(10,7),49.0/30 },
+    { -5.0/7, new FractionType(5,7),-1.0/1 },
   ];
 
   th.TestCase("double divided by fraction");
-  Fraction f=new Fraction;
-  double d,d2,expected_result;
+  foreach (td; test_data) {
+    auto d = td.d1/td.f;
+    th.Test(format("(%s) / (%s) = (%s)",td.d1,td.f,td.d2),fabs(d - td.d2) < FractionType.epsilon);
+  }
+}
 
-  for(int i=0;i<test_data.length;i++) {
-    d=cast(double)test_data[i][0]/cast(double)test_data[i][1];
-    f.set(test_data[i][2],test_data[i][3]);
-    expected_result=cast(double)test_data[i][4]/cast(double)test_data[i][5];
-    d2=d/f;
-    th.Test(format("%s / (%s/%s) = %s",d,test_data[i][2],test_data[i][3],expected_result),fabs(expected_result - d2) < f.epsilon);
+void test_double_power_fraction()
+{
+  DFD [] test_data = [
+    { 0.0/1,new FractionType(1,1),0.0/1},
+    { 3.0/5,new FractionType(-2,9),643.0/574},
+    { 1.0/4,new FractionType(-3,4),577.0/204},
+    { 7.0/3,new FractionType(10,7),1399.0/417},
+    { -5.0/7,new FractionType(5,1),-37.0/199},
+  ];
+
+  th.TestCase("Double to power of fraction");
+  foreach (td; test_data) {
+    auto d = td.d1^^td.f;
+    th.Test(format("(%s) / (%s) = (%s)",td.d1,td.f,td.d2),fabs(d - td.d2) < FractionType.epsilon);
   }
 }
 
@@ -753,20 +831,6 @@ void test_assign_double()
     f=assign_double_data_input[i];
     th.Test(format("f = %s (%s/%s)",assign_double_data_input[i],assign_double_data_output[i][0],assign_double_data_output[i][1]),
             f.numerator()==assign_double_data_output[i][0] && f.denominator()==assign_double_data_output[i][1]);
-  }
-}
-
-void test_fraction_to_string()
-{
-  int [][] fraction_to_string_input = [ [-503,50], [-3,50], [0,1], [3,50], [503,50]];
-  string [] fraction_to_string_output = [ "-503/50", "-3/50" , "0", "3/50" , "503/50"];
-  Fraction f = new Fraction;
-  th.TestCase("Fraction toString");
-
-  for(int i=0;i<fraction_to_string_input.length;i++) {
-    f.set(fraction_to_string_input[i][0],fraction_to_string_input[i][1]);
-    th.Test(format("toString(%s/%s) = \"%s\"",fraction_to_string_input[i][0],fraction_to_string_input[i][1],
-          fraction_to_string_output[i]),f.toString()==fraction_to_string_output[i]);
   }
 }
 
@@ -805,44 +869,74 @@ void test_fraction_round()
   }
 }
 
+void test_random()
+{
+  th.TestCase("Random double to fraction");
+  int numerator,denominator;
+  Fraction f=new Fraction;
+  auto rnd = Random(cast(int)time(null));
+  for(int i=0;i<1000;i++) {
+    numerator = uniform(100, 214748364, rnd);
+    denominator = uniform(100, 214748364, rnd);
+    double value = cast(double)numerator/cast(double)denominator;
+    f.set(value);
+    if(fabs(value - cast(double)f)) {
+      th.PassIncrement();
+    } else {
+      th.FailIncrement();
+    }
+  }
+}
+
 void function() [] tests =
 [
   &test_gcd,
-  &test_set,
-  &test_set_wnd,
-  &test_set_double,
-  &test_equality,
-  &test_inequality,
-  &test_less_than,
-  &test_less_than_equal,
-  &test_greater_than,
-  &test_greater_than_equal,
+  &test_new_zero_args,
+  &test_new_one_integer_arg,
+  &test_new_two_integer_args,
+  &test_new_three_integers,
+  &test_new_double,
+  &test_new_string,
+  &test_fraction_to_string,
+  &test_fraction_equal_fraction,
+  &test_fraction_not_equal_fraction,
+  &test_fraction_less_than_fraction,
+  &test_fraction_less_than_equal_fraction,
+  &test_fraction_greater_than_fraction,
+  &test_fraction_greater_than_equal_fraction,
   &test_cast_to_double,
-  &test_equal_to_double,
-  &test_not_equal_double,
-  &test_less_than_double,
-  &test_less_than_equal_double,
-  &test_greater_than_double,
-  &test_greater_than_equal_double,
+  &test_fraction_equal_to_double,
+  &test_fraction_not_equal_double,
+  &test_fraction_less_than_double,
+  &test_fraction_less_than_equal_double,
+  &test_fraction_greater_than_double,
+  &test_fraction_greater_than_equal_double,
   &test_double_equal_to_fraction,
   &test_double_not_equal_to_fraction,
   &test_double_less_than_fraction,
   &test_double_less_than_equal_fraction,
   &test_double_greater_than_fraction,
   &test_double_greater_than_equal_fraction,
-  &test_fraction_addition,
-  &test_fraction_subtraction,
-  &test_fraction_multiplication,
-  &test_fraction_division,
+  &test_fraction_plus_fraction,
+  &test_fraction_minus_fraction,
+  &test_fraction_times_fraction,
+  &test_fraction_divided_by_fraction,
+  &test_fraction_power_fraction,
+  &test_fraction_plus_double,
+  &test_fraction_minus_double,
+  &test_fraction_times_double,
+  &test_fraction_divided_by_double,
+  &test_fraction_power_double,
   &test_double_plus_fraction,
   &test_double_minus_fraction,
   &test_double_times_fraction,
   &test_double_divided_by_fraction,
+  &test_double_power_fraction,
   &test_assign_int,
   &test_assign_double,
-  &test_fraction_to_string,
   &test_fraction_to_string_mixed,
-  &test_fraction_round
+  &test_fraction_round,
+  &test_random
 ];
 
 int indexex[32];

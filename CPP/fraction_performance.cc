@@ -29,6 +29,8 @@
 #include <iomanip>
 #include <cmath>
 #include <getopt.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 
 using namespace std;
 #include "fraction.hh"
@@ -138,9 +140,12 @@ void frequency_array_t::display_graph(const string& xlabel,const string& ylabel)
   double scale=((double)TERMINAL_COLUMNS)/max_freq_;
   const_iterator i;
   for(i=cbegin();i<cend();i++) {
-    histogram.clear();
+    histogram = " ";
     int height=round(i->frequency*scale);
-    histogram.append(height,'#');
+    if(height == 0)
+      histogram.append(1,'|');
+    else
+      histogram.append(height,'#');
     cout << "  " << setw(4) << i->value << " |" << histogram << " " << i->frequency << endl;
   }
   cout << endl;
@@ -161,23 +166,30 @@ void frequency_array_t::show_results(const string& heading,const string& xlabel)
   display_graph(xlabel,"Frequency");
 }
 
-// Diff in tens of nanoseconds
-#define diff_in_tns(start,end) \
-  ::round((((1000000000.0*end.tv_sec+end.tv_nsec) - (1000000000.0*start.tv_sec+start.tv_nsec))/10.0))
+#define total_time_in_ms(ru_struct) ((ru_struct.ru_utime.tv_sec + ru_struct.ru_stime.tv_sec)*1000000 \
+        + ru_struct.ru_utime.tv_usec + ru_struct.ru_stime.tv_usec)
 
-void do_test(int denominator,frequency_array_t& time_freq,frequency_array_t& loop_freq)
+#define diff_in_tns(before,after) (total_time_in_ms(after) - total_time_in_ms(before))*100
+
+
+void do_test(double value,frequency_array_t& time_freq,frequency_array_t& loop_freq)
 {
+  fraction_t f;
+  struct rusage ru_b,ru_a;
+  /*
+    getrusage function does not have enough resolution to measure one cycle, so do 100 loops
+    and take average.
+  */
   int i;
-  for(i=0;i<denominator;i++) {
-    struct timespec start_time,end_time;
-    clock_gettime(CLOCK_MONOTONIC, &start_time);
-    fraction_t(((double)i)/((double)denominator));
-    clock_gettime(CLOCK_MONOTONIC, &end_time);
-    if(i>0) {
-      time_freq.increment(diff_in_tns(start_time,end_time));
-      loop_freq.increment(nLoops);
-    }
-  }
+  getrusage(RUSAGE_SELF,&ru_b);
+  for(i=0;i<100;i++)
+    f=value;
+  getrusage(RUSAGE_SELF,&ru_a);
+//  printf("%ld %ld\n",total_time_in_ms(ru_b),total_time_in_ms(ru_a));
+  time_freq.increment(diff_in_tns(ru_b,ru_a)/100);
+#ifdef CALCULATE_LOOP_STATISTICS
+  loop_freq.increment(nLoops);
+#endif
 }
 
 /*
@@ -187,32 +199,34 @@ void single_test(int denominator)
 {
   frequency_array_t time_freq;
   frequency_array_t loop_freq;
-  do_test(denominator,time_freq,loop_freq);
+  int i;
+  for(i=1;i<denominator;i++)
+    do_test((double)i/double(denominator),time_freq,loop_freq);
   time_freq.sort();
   time_freq.show_results("Time taken to convert floating point to faction (time is in 10s of nanoseconds)","time");
   loop_freq.sort();
   loop_freq.show_results("Number of iterations to convert floating point to fraction","Loops");
 }
 
-void random_test(int min_tests)
+struct numerator_denominator_t {
+  int numerator;
+  int denominator;
+};
+bool operator==(const numerator_denominator_t& a,const numerator_denominator_t& b)
+{
+  return a.numerator==b.numerator && a.denominator==b.denominator;
+}
+
+void random_test(int nTests)
 {
   frequency_array_t time_freq;
   frequency_array_t loop_freq;
 
   srand(time(NULL));
-  vector<int> denominators;
-  int n_tests=0;
-  while(n_tests < min_tests) {
-    int denominator=rand() % min_tests + 100;
-    // make sure it's unique
-    if(find(denominators.cbegin(),denominators.cend(),denominator) == denominators.cend()) {
-      denominators.push_back(denominator);
-      n_tests+=denominator-1;
-    }
-  }
-  vector<int>::const_iterator i;
-  for(i=denominators.cbegin();i!=denominators.cend();i++) {
-    do_test(*i,time_freq,loop_freq);
+
+  int i;
+  for(i=0;i<nTests;i++) {
+    do_test(static_cast<double>(rand())/static_cast<double>(rand()),time_freq,loop_freq);
   }
   time_freq.sort();
   time_freq.show_results("Time taken to convert floating point to faction (time is in 10s of nanoseconds)","time");
@@ -227,8 +241,8 @@ void syntax(const string& pgm)
   cout << "        " << pgm << endl << endl;
   cout << "Where:  -h | --help prints this help message\n";
   cout << "        -s | --single N -- gather statistics using N as denominator (runs tests using fractions 1/N to (N-1)/N)\n";
-  cout << "        -r | --random N -- gather statistics running a minimum of N tests using random denominators\n";
-  cout << "        The default is to run a single test using 1000 as denominator and 1000 minimum random tests\n\n";
+  cout << "        -r | --random N -- gather statistics running N tests using random floating point numbers\n";
+  cout << "        The default is to run a single test using 1000 as denominator and 1000 random tests\n\n";
   cout <<"Examples\n";
   cout <<"   1) To run default case\n";
   cout <<"      " << pgm << endl;
@@ -236,7 +250,7 @@ void syntax(const string& pgm)
   cout <<"      " << pgm << " -s 100000\n";
   cout <<"   3) To run a minimum of 30000 random test\n";
   cout <<"      " << pgm << " -r 30000\n";
-  cout <<"   4) To run a single test using denominator of 100000 and a minimum of 30000 random test\n";
+  cout <<"   4) To run a single test using denominator of 100000 and 30000 random test\n";
   cout <<"      " << pgm << " --single 100000 --random 30000\n";
 exit(0);
 }

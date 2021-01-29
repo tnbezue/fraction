@@ -3,6 +3,9 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#include <sys/times.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 #include <getopt.h>
 #include "fraction.h"
 
@@ -187,7 +190,11 @@ void frequency_array_display_graph(const frequency_array_t* freq_data,const char
   double scale=((double)TERMINAL_COLUMNS)/freq_data->max_freq;
   for(i=frequency_array_begin(freq_data);i!=frequency_array_end(freq_data);i++) {
     int height=round(i->frequency*scale);
-    memset(histogram,'#',height);
+    if(height==0) {
+      strcpy(histogram,"|");
+      height=1;
+    } else
+      memset(histogram,'#',height);
     histogram[height]=0;
     printf("  %4d |  %s %d\n",i->value,histogram,i->frequency);
   }
@@ -197,7 +204,7 @@ void frequency_array_display_graph(const frequency_array_t* freq_data,const char
 void frequency_array_show_results(const frequency_array_t* freq_data,const char* heading,const char* xlabel)
 {
   printf("\n%s\n",heading);
-  char f_str[32];
+  const char* f_str;
   frequency_t* ptr=(frequency_t*)frequency_array_begin(freq_data);
   printf("  Min %s : %d\n",xlabel,ptr->value);
   ptr=(frequency_t*)frequency_array_end(freq_data);
@@ -206,49 +213,55 @@ void frequency_array_show_results(const frequency_array_t* freq_data,const char*
   statistics_t stats=frequency_array_statistics(freq_data);
   printf("  Sample size: %d\n",stats.size);
   // Of course this has to be printed as a fraction
-  fraction_t f=fraction_from_double(stats.average);
+  fraction_t f;
+  fraction_set_double(&f,stats.average);
   fraction_round(&f,100);
-  fraction_to_mixed_s(f,f_str,32);
+  f_str = fraction_to_mixed_s(f);
   printf("  Average: %s\n",f_str);
   printf("  Median: %d\n",stats.median);
   printf("  Mode: %d\n",stats.mode);
   fraction_set_double(&f,stats.standard_deviation);
   fraction_round(&f,100);
-  fraction_to_mixed_s(f,f_str,32);
+  f_str = fraction_to_mixed_s(f);
   printf("  Standard Deviation: %s\n",f_str);
   frequency_array_display_graph(freq_data,xlabel,"Frequency");
 }
 
-// Time differences in 10s of nanoseconds
-#define diff_in_tns(start,end) \
-  round(((1000000000*end.tv_sec+end.tv_nsec) - (1000000000*start.tv_sec+start.tv_nsec))/10.0)
+#define total_time_in_ms(ru_struct) ((ru_struct.ru_utime.tv_sec + ru_struct.ru_stime.tv_sec)*1000000 \
+        + ru_struct.ru_utime.tv_usec + ru_struct.ru_stime.tv_usec)
 
-/*
-  Gather stats on fraction from 1/denominator to (denominator-1)/denominator
-*/
-void do_test(int denominator,frequency_array_t* time_freq,frequency_array_t* loop_freq)
+#define diff_in_tns(before,after) (total_time_in_ms(after) - total_time_in_ms(before))*100
+
+void do_test(double value,frequency_array_t* time_freq,frequency_array_t* loop_freq)
 {
-  int i;
   fraction_t f;
-  for(i=0;i<denominator;i++) {
-    struct timespec start_time,end_time;
-    clock_gettime(CLOCK_MONOTONIC, &start_time);
-    fraction_set_double(&f,((double)i)/((double)denominator));
-    clock_gettime(CLOCK_MONOTONIC, &end_time);
-    if(i>0) {
-      frequency_array_increment(time_freq,diff_in_tns(start_time,end_time));
+  struct rusage ru_b,ru_a;
+  /*
+    getrusage function does not have enough resolution to measure one cycle, so do 100 loops
+    and take average.
+  */
+  int i;
+  getrusage(RUSAGE_SELF,&ru_b);
+  for(i=0;i<100;i++)
+    fraction_set_double(&f,value);
+  getrusage(RUSAGE_SELF,&ru_a);
+//  printf("%ld %ld\n",total_time_in_ms(ru_b),total_time_in_ms(ru_a));
+  frequency_array_increment(time_freq,diff_in_tns(ru_b,ru_a)/100);
 #ifdef CALCULATE_LOOP_STATISTICS
-      frequency_array_increment(loop_freq,nLoops);
+  frequency_array_increment(loop_freq,nLoops);
 #endif
-    }
-  }
 }
 
+/*
+  Perform test using a single denominator --- 1/denomnator to (denominator-1)/denominator
+*/
 void single_test(int denominator)
 {
   frequency_array_t* time_freq=new_frequency_array();
   frequency_array_t* loop_freq=new_frequency_array();
-  do_test(denominator,time_freq,loop_freq);
+  int i;
+  for(i=1;i<denominator;i++)
+    do_test((double)i/(double)denominator,time_freq,loop_freq);
   frequency_array_sort(time_freq);
   frequency_array_show_results(time_freq,"Time taken to convert floating point to faction (time is in 10s of nanoseconds)","Time");
   delete_frequency_array(time_freq);
@@ -263,56 +276,19 @@ void single_test(int denominator)
 #endif
 }
 
-int cmp_int(const void* lhs,const void* rhs)
-{
-  return (*(const int*)lhs) - (*(const int*)rhs);
-}
-
-typedef struct {
-  dynamic_array_t;
-} int_array_t;
-
-int_array_t* int_array_new()
-{
-  int_array_t* this=malloc(sizeof(int_array_t));
-  dynamic_array_newp((dynamic_array_t*)this,sizeof(int),cmp_int);
-  return this;
-}
-
-void delete_int_array(int_array_t* this)
-{
-  if(this) {
-    dynamic_array_deletep((dynamic_array_t*)this);
-    free(this);
-  }
-}
-
-#define int_array_find(ia,data) dynamic_array_find((dynamic_array_t*)ia,data)
-#define int_array_add(ia,data) dynamic_array_add((dynamic_array_t*)ia,data)
-#define int_array_size(ia) dynamic_array_size((dynamic_array_t*)ia)
-#define int_array_capacity(ia) dynamic_array_capacity((dynamic_array_t*)ia)
-#define int_array_begin(ia) ((int*)dynamic_array_begin((dynamic_array_t*)ia))
-#define int_array_end(ia) ((int*)dynamic_array_end((dynamic_array_t*)ia))
-
-void random_test(int min_tests)
+/*
+  Perform test using random numerator and denominators
+*/
+void random_test(int ntests)
 {
   srand(time(NULL));
-  int_array_t *denominators=int_array_new();
-  int n_tests=0;
-  while(n_tests < min_tests) {
-    int denominator=rand() % min_tests + 100;
-    if(int_array_find(denominators,&denominator) == int_array_end(denominators)) {
-      int_array_add(denominators,&denominator);
-      n_tests+=denominator-1;
-    }
-  }
-  int* i;
+
+  int i;
   frequency_array_t* time_freq=new_frequency_array();
   frequency_array_t* loop_freq=new_frequency_array();
-  for(i=int_array_begin(denominators);i!=int_array_end(denominators);i++) {
-    do_test(*i,time_freq,loop_freq);
+  for(i=0;i<ntests;i++) {
+    do_test((double)rand()/(double)rand(),time_freq,loop_freq);
   }
-  delete_int_array(denominators);
   frequency_array_sort(time_freq);
   frequency_array_show_results(time_freq,"Time taken to convert floating point to faction (time is in 10s of nanoseconds)","Time");
   delete_frequency_array(time_freq);
@@ -334,8 +310,8 @@ void syntax(const char* pgm)
   printf("        %s\n\n",pgm);
   printf("Where:  -h | --help prints this help message\n");
   printf("        -s | --single N -- gather statistics using N as denominator (runs tests using fractions 1/N to (N-1)/N)\n");
-  printf("        -r | --random N -- gather statistics running a minimum of N tests using random denominators\n");
-  printf("        The default is to run a single test using 1000 as denominator and 1000 minimum random tests\n\n");
+  printf("        -r | --random N -- gather statistics running N tests using random floating pont numbers\n");
+  printf("        The default is to run a single test using 1000 as denominator and 1000 random tests\n\n");
   printf("Examples\n");
   printf("   1) To run default case\n");
   printf("      %s\n",pgm);
@@ -343,7 +319,7 @@ void syntax(const char* pgm)
   printf("      %s -s 100000\n",pgm);
   printf("   3) To run a minimum of 30000 random test\n");
   printf("      %s -r 30000\n",pgm);
-  printf("   4) To run a single test using denominator of 100000 and a minimum of 30000 random test\n");
+  printf("   4) To run a single test using denominator of 100000 and 30000 random test\n");
   printf("      %s --single 100000 --random 30000\n",pgm);
 
   printf("\n");

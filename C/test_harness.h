@@ -28,15 +28,19 @@ int nFail = 0;
 int nPass = 0;
 int nTotalFail=0;
 int nTotalPass=0;
+int nTotalCases=0;
 
-#define SUMMARY  printf("  Passed: %d Failed: %d\n\n",nPass,nFail)
+#define SUMMARY  printf("Summary\n  Passed: %d Failed: %d\n\n",nPass,nFail)
 #define TEST(S,T) printf("  %s . . %s\n" ,S,((T) ? ( nPass++,"pass") : (nFail++,"fail"))),fflush(stdout)
 #define TESTCASE(S) if(nFail || nPass) SUMMARY; puts(S); \
 	nTotalFail+=nFail;nTotalPass+=nPass; \
-	nFail=0;nPass=0
+	nFail=0;nPass=0;nTotalCases++
+
 #define FINAL_SUMMARY  if(nFail || nPass) SUMMARY; \
 	nTotalFail+=nFail;nTotalPass+=nPass; \
-	printf("%d Passed\n%d Failed\n",nTotalPass,nTotalFail)
+	printf("Final Summary\n  %4d Test cases\n  %4d Total Tests\n  %4d Total Passed\n  %4d Total Failed\n", \
+    nTotalCases,nTotalPass+nTotalFail,nTotalPass,nTotalFail)
+
 #define TEST_ALL(test_funcs) unsigned i; for( i=0;i<sizeof(test_funcs)/sizeof(test_funcs[1]);i++) \
       { test_funcs[i](); }
 

@@ -1,6 +1,6 @@
 
 TARGETS=test_fraction fraction_performance
-CFLAGS+=-fms-extensions
+CFLAGS+=-Wall -fms-extensions
 LOADLIBES+=-lm
 CC=gcc
 all: ${TARGETS}

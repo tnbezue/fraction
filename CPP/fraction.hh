@@ -34,6 +34,9 @@ class fraction_t {
 
     static int64_t gcd_internal(int64_t,int64_t);
     void set_internal(int64_t,int64_t);
+
+    bool set_number_string(const char*);
+    bool set_fraction_string(const char*);
   public:
 
     /*
@@ -47,16 +50,20 @@ class fraction_t {
     fraction_t(const fraction_t& o) : numerator_(o.numerator_), denominator_(o.denominator_) { }
 
     /*
-     * Set fraction equal to other fraction
+
     */
-    fraction_t& operator=(const fraction_t& o)
-        { numerator_=o.numerator_; denominator_=o.denominator_; return *this; }
+    fraction_t(fraction_numerator_denominator_t n) : numerator_(n), denominator_(1) { }
 
     /*
      * Create new fraction using specified numerator and denominator
     */
     fraction_t(fraction_numerator_denominator_t n,fraction_numerator_denominator_t d) { set(n,d); }
 
+    /*
+     * Create new fraction using specified numerator and denominator
+    */
+    fraction_t(fraction_numerator_denominator_t w,fraction_numerator_denominator_t n,
+            fraction_numerator_denominator_t d) { set(w,n,d); }
 
     /*
      *  Create new fraction using double value
@@ -64,9 +71,35 @@ class fraction_t {
     fraction_t(double d) { *this=d; }
 
     /*
+     * Set fration from string
+    */
+    fraction_t(const char*str) { set(str); }
+
+    /*
+     * Set fraction equal to other fraction
+    */
+    fraction_t& operator=(const fraction_t& o)
+        { numerator_=o.numerator_; denominator_=o.denominator_; return *this; }
+
+    /*
+     *  Set the numerator and denominator of fraction
+    */
+    void set(fraction_numerator_denominator_t n) { this->numerator_ = n; this->denominator_=1; }
+
+    /*
      *  Set the numerator and denominator of fraction
     */
     void set(fraction_numerator_denominator_t n,fraction_numerator_denominator_t d) { set_internal(static_cast<int64_t>(n),static_cast<int64_t>(d)); }
+
+    /*
+     *  Set the numerator and denominator of fraction
+    */
+    void set(fraction_numerator_denominator_t w,fraction_numerator_denominator_t n,fraction_numerator_denominator_t d);
+
+    /*
+     *
+    */
+    void set(const char*);
 
     /*
      * Get the value of numerator
@@ -133,9 +166,14 @@ class fraction_t {
     fraction_t round(fraction_numerator_denominator_t denom) const { fraction_t f=*this; return f.round(denom); }
 
     /*
+     * Reciprocal
+    */
+    fraction_t reciprocal() const;
+
+    /*
      * Absolute value
     */
-    fraction_t abs() const { return fraction_t(::abs(numerator_),denominator_); }
+    fraction_t abs() const { return fraction_t(::llabs(numerator_),denominator_); }
 
     /*
      * Convert fraction to string
@@ -207,17 +245,17 @@ class fraction_t {
   inline fraction_t operator/(const fraction_t& f,double d)
       { return fraction_t(static_cast<double>(f)/d); }
 
-  inline fraction_t operator+(double d,const fraction_t&f)
-      { return operator+(f,d); }
+  inline double operator+(double d,const fraction_t&f)
+      { return static_cast<double>(operator+(f,d)); }
 
-  inline fraction_t operator-(double d,const fraction_t&f)
-      { return fraction_t(d-static_cast<double>(f)); }
+  inline double operator-(double d,const fraction_t&f)
+      { return (d-static_cast<double>(f)); }
 
-  inline fraction_t operator*(double d,const fraction_t&f)
-      { return operator*(f,d); }
+  inline double operator*(double d,const fraction_t&f)
+      { return static_cast<double>(operator*(f,d)); }
 
-  inline fraction_t operator/(double d,const fraction_t&f)
-      { return fraction_t(d/static_cast<double>(f)); }
+  inline double operator/(double d,const fraction_t&f)
+      { return (d/static_cast<double>(f)); }
 
   /*
    * Determines if lhs fraction equal to rhs fraction
@@ -327,7 +365,7 @@ class fraction_t {
       mixed_fraction_t() : fraction_t() { }
       mixed_fraction_t(fraction_numerator_denominator_t w,fraction_numerator_denominator_t n,fraction_numerator_denominator_t d) : fraction_t() { set(w,n,d); }
       mixed_fraction_t(double d) : fraction_t(d) { }
-
+      mixed_fraction_t(const char* str) : fraction_t(str) { }
       mixed_fraction_t(const mixed_fraction_t& f) { numerator_=f.numerator(); denominator_=f.denominator(); }
       mixed_fraction_t(const fraction_t& f) { numerator_=f.numerator(); denominator_=f.denominator(); }
     /*

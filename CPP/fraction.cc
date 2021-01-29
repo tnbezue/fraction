@@ -124,7 +124,7 @@ fraction_t& fraction_t::operator=(double d)
     h=a*hm1 + hm2;
     k=a*km1 + km2;
 //    printf("%lg %d %d %d %d %d %d %d\n",v,a,h,k,hm1,km1,hm2,km2);
-    if(fabs(d - (double)h/(double)k) < fraction_t::epsilon)
+    if(fabs(d - static_cast<double>(h)/static_cast<double>(k)) < fraction_t::epsilon)
       break;
     v = 1.0/(v -a);
     hm2=hm1;
@@ -144,6 +144,121 @@ fraction_t& fraction_t::operator=(double d)
   return *this;
 }
 #endif
+
+#define signof(x) ((x)<0 ? -1 : 1)
+void fraction_t::set(fraction_numerator_denominator_t w,fraction_numerator_denominator_t n,fraction_numerator_denominator_t d)
+{
+  int64_t sign = signof(w)*signof(n)*signof(d);
+  int64_t ww = llabs(w);
+  int64_t nn = llabs(n);
+  int64_t dd = llabs(d);
+  set_internal(sign*(ww*dd+nn),dd);
+}
+
+static int space(const char* str)
+{
+  const char *ptr = str;
+  for(;*ptr == ' '; ptr++);
+  return ptr - str;
+}
+
+bool fraction_t::set_number_string(const char* str)
+{
+  char* end_ptr;
+  double value;
+  bool valid=false;
+  if(str && *str != 0) {
+    value = strtod(str,&end_ptr);
+    if(end_ptr) {
+      end_ptr+=space(end_ptr);
+      valid = *end_ptr == 0;
+      if(valid)
+        set(value);
+    }
+  }
+  return valid;
+}
+
+/* nodoc */
+static int digits(const char* str)
+{
+  const char* ptr =str;
+  for(;isdigit(*ptr);ptr++);
+  return (ptr - str) ;
+}
+
+bool fraction_t::set_fraction_string(const char* str)
+{
+  bool valid = false;
+  const char* ptr=str;
+  const char* ptr_w=NULL;
+  const char* ptr_n=NULL;
+  const char* ptr_d=NULL;
+  ptr+=space(ptr);
+  if(*ptr != 0) { // NOt all spaces
+    ptr_w=ptr;
+    if(*ptr == '+' || *ptr == '-')
+      ptr++;
+    int ndigits;
+    if((ndigits=digits(ptr)) > 0) {
+//      n=atoll(sign_ptr);
+      ptr += ndigits;
+      if(*ptr == '/') {
+        ptr_n = ptr_w;
+        ptr_w=NULL;
+        ptr++;
+        ptr_d=ptr;
+        if(*ptr == '+' || *ptr == '-')
+          ptr++;
+        if((ndigits=digits(ptr))>0) {
+          ptr+=ndigits;
+        } else {
+//          ptr_n=NULL;
+          ptr_d=NULL;
+        }
+      } else { // mixed fraction
+        ptr += space(ptr);
+        ptr_n=ptr;
+        if(*ptr == '+' || *ptr == '-')
+          ptr++;
+        if((ndigits=digits(ptr)) > 0) {
+          ptr+=ndigits;
+          if(*ptr == '/') {
+            ptr++;
+            ptr_d=ptr;
+            if(*ptr == '+' || *ptr == '-')
+              ptr++;
+            if((ndigits=digits(ptr))>0) {
+              ptr += ndigits;
+            } else {
+              ptr_d=NULL;
+            }
+          }
+        }
+      }
+    }
+  }
+  ptr += space(ptr);
+  if(*ptr == 0 && ptr_d != NULL) {
+    set(ptr_w ? atoll(ptr_w) : 0,atoll(ptr_n),atoll(ptr_d));
+    valid = true;
+  }
+  return valid;
+}
+
+void fraction_t::set(const char* str)
+{
+  if(!set_number_string(str))
+    if(!set_fraction_string(str))
+      fprintf(stderr,"Error setting via string"); // should throw exception
+}
+
+fraction_t fraction_t::reciprocal() const
+{
+  fraction_t t;
+  t.set_internal(this->denominator_,this->numerator_);
+  return t;
+}
 
 fraction_t& fraction_t::round(fraction_numerator_denominator_t denom)
 {

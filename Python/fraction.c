@@ -186,22 +186,6 @@ typedef struct {
 #define is_int(d) ((int64_t)d == d)
 #define signof(d) ((d) < 0 ? -1 : 1)
 
-/*
-static double_result_t is_number(const char* str)
-{
-  double_result_t r={0,0};
-  char* ptr;
-  str+=whitespace(str);
-  if(*str != 0) {
-    r.value = strtod(str,&ptr);
-    if(ptr) {
-      ptr+=whitespace(ptr);
-      r.valid = *ptr == 0;
-    }
-  }
-  return r;
-}
-*/
 static int space(const char* str)
 {
   const char *ptr = str;
@@ -355,7 +339,8 @@ static int fraction_set_number_string(fraction_internal_t* f,const char* str)
     if(end_ptr) {
       end_ptr+=space(end_ptr);
       valid = *end_ptr == 0;
-      fraction_internal_set_float(f,value);
+      if(valid)
+        fraction_internal_set_float(f,value);
     }
   }
   return valid;
@@ -603,6 +588,10 @@ static PyObject* fraction_int(PyObject* self)
 }
 
 // Value has to be numerical (Int or Float) or a Fraction
+#define PY_COPY_FRACTION(to,from) \
+  ((FractionObject*)to) ->numerator = ((FractionObject*)from)->numerator; \
+  ((FractionObject*)to) ->denominator = ((FractionObject*)from)->denominator;
+
 static int PyValue_to_internal_fraction(PyObject* value,fraction_internal_t* f)
 {
   int rc =1;
@@ -634,19 +623,27 @@ static int PyValue_to_double(PyObject* value,double* dbl)
   return rc;
 }
 
+static PyObject* fraction_iadd(PyObject* self,PyObject* other)
+{
+  fraction_internal_t lhs,rhs;
+  PyValue_to_internal_fraction(self,&lhs);
+  if(PyValue_to_internal_fraction(other,&rhs)) {
+    Py_INCREF(self);
+    fraction_internal_add(lhs,rhs);
+    internal_fraction_to_PyFraction(&lhs,(FractionObject*)self);
+  } else {
+    return Py_NotImplemented;
+  }
+  return self;
+}
+
 static PyObject* fraction_add(PyObject* self,PyObject* other)
 {
   PyObject* result = NULL;
   if(PyObject_IsInstance(self,(PyObject*)&FractionType)) {
-    fraction_internal_t lhs,rhs;
-    PyValue_to_internal_fraction(self,&lhs);
-    if(PyValue_to_internal_fraction(other,&rhs)) {
-      fraction_internal_add(lhs,rhs);
-      result = (PyObject*) PyObject_New(FractionObject,self->ob_type);
-      internal_fraction_to_PyFraction(&lhs,(FractionObject*)result);
-    } else {
-      result = Py_NotImplemented;
-    }
+    result = PyObject_New(PyObject,self->ob_type);
+    PY_COPY_FRACTION(result,self);
+    result = fraction_iadd(result,other);
   } else {
     double temp;
     if(PyValue_to_double(self,&temp)) {
@@ -658,19 +655,27 @@ static PyObject* fraction_add(PyObject* self,PyObject* other)
   return result;
 }
 
+static PyObject* fraction_isubtract(PyObject* self,PyObject* other)
+{
+  fraction_internal_t lhs,rhs;
+  PyValue_to_internal_fraction(self,&lhs);
+  if(PyValue_to_internal_fraction(other,&rhs)) {
+    Py_INCREF(self);
+    fraction_internal_sub(lhs,rhs);
+    internal_fraction_to_PyFraction(&lhs,(FractionObject*)self);
+  } else {
+    return Py_NotImplemented;
+  }
+  return self;
+}
+
 static PyObject* fraction_subtract(PyObject* self,PyObject* other)
 {
   PyObject* result = NULL;
   if(PyObject_IsInstance(self,(PyObject*)&FractionType)) {
-    fraction_internal_t lhs,rhs;
-    PyValue_to_internal_fraction(self,&lhs);
-    if(PyValue_to_internal_fraction(other,&rhs)) {
-      fraction_internal_sub(lhs,rhs);
-      result = (PyObject*) PyObject_New(FractionObject,self->ob_type);
-      internal_fraction_to_PyFraction(&lhs,(FractionObject*)result);
-    } else {
-      result = Py_NotImplemented;
-    }
+    result = PyObject_New(PyObject,self->ob_type);
+    PY_COPY_FRACTION(result,self);
+    result = fraction_isubtract(result,other);
   } else {
     double temp;
     if(PyValue_to_double(self,&temp)) {
@@ -682,19 +687,27 @@ static PyObject* fraction_subtract(PyObject* self,PyObject* other)
   return result;
 }
 
+static PyObject* fraction_imultiply(PyObject* self,PyObject* other)
+{
+  fraction_internal_t lhs,rhs;
+  PyValue_to_internal_fraction(self,&lhs);
+  if(PyValue_to_internal_fraction(other,&rhs)) {
+    Py_INCREF(self);
+    fraction_internal_mul(lhs,rhs);
+    internal_fraction_to_PyFraction(&lhs,(FractionObject*)self);
+  } else {
+    return Py_NotImplemented;
+  }
+  return self;
+}
+
 static PyObject* fraction_multiply(PyObject* self,PyObject* other)
 {
   PyObject* result = NULL;
   if(PyObject_IsInstance(self,(PyObject*)&FractionType)) {
-    fraction_internal_t lhs,rhs;
-    PyValue_to_internal_fraction(self,&lhs);
-    if(PyValue_to_internal_fraction(other,&rhs)) {
-      fraction_internal_mul(lhs,rhs);
-      result = (PyObject*) PyObject_New(FractionObject,self->ob_type);
-      internal_fraction_to_PyFraction(&lhs,(FractionObject*)result);
-    } else {
-      result = Py_NotImplemented;
-    }
+    result = PyObject_New(PyObject,self->ob_type);
+    PY_COPY_FRACTION(result,self);
+    result = fraction_imultiply(result,other);
   } else {
     double temp;
     if(PyValue_to_double(self,&temp)) {
@@ -706,19 +719,28 @@ static PyObject* fraction_multiply(PyObject* self,PyObject* other)
   return result;
 }
 
+static PyObject* fraction_idivide(PyObject* self,PyObject* other)
+{
+  fraction_internal_t lhs,rhs;
+  PyValue_to_internal_fraction(self,&lhs);
+  if(PyValue_to_internal_fraction(other,&rhs)) {
+    Py_INCREF(self);
+    fraction_internal_div(lhs,rhs);
+    internal_fraction_to_PyFraction(&lhs,(FractionObject*)self);
+  } else {
+    return Py_NotImplemented;
+  }
+  return self;
+}
+
+
 static PyObject* fraction_divide(PyObject* self,PyObject* other)
 {
   PyObject* result = NULL;
   if(PyObject_IsInstance(self,(PyObject*)&FractionType)) {
-    fraction_internal_t lhs,rhs;
-    PyValue_to_internal_fraction(self,&lhs);
-    if(PyValue_to_internal_fraction(other,&rhs)) {
-      fraction_internal_div(lhs,rhs);
-      result = (PyObject*) PyObject_New(FractionObject,self->ob_type);
-      internal_fraction_to_PyFraction(&lhs,(FractionObject*)result);
-    } else {
-      result = Py_NotImplemented;
-    }
+    result = PyObject_New(PyObject,self->ob_type);
+    PY_COPY_FRACTION(result,self);
+    result = fraction_idivide(result,other);
   } else {
     double temp;
     if(PyValue_to_double(self,&temp)) {
@@ -730,16 +752,31 @@ static PyObject* fraction_divide(PyObject* self,PyObject* other)
   return result;
 }
 
+static PyObject* fraction_ipower(PyObject* self,PyObject* other,PyObject* Py_UNUSED(ignored))
+{
+  double b=0,e=0;
+  if(PyValue_to_double(self,&b) && PyValue_to_double(other,&e)) {
+    Py_INCREF(self);
+    if((b >= 0) || (b < 0 && ((int)e == e))) { // negative number can only be raise to integer power
+      double result = pow(b,e);
+      fraction_internal_t f;
+      fraction_internal_set_float(&f,result);
+      internal_fraction_to_PyFraction(&f,(FractionObject*)self);
+    } /* else b < 0 ... -- result will be complex, let it return not implemented for now */
+  } else {
+    return Py_NotImplemented;
+  }
+  return self;
+}
+
 static PyObject* fraction_pow(PyObject* self,PyObject* other,PyObject* Py_UNUSED(ignored))
 {
   double b=0,e=0;
   PyObject* ret = Py_NotImplemented;
   if(PyValue_to_double(self,&b) && PyValue_to_double(other,&e)) {
     if((b >= 0) || (b < 0 && ((int)e == e))) { // negative number can only be raise to integer power
-      double result = pow(b,fabs(e));
+      double result = pow(b,e);
       // Make return type same as base
-      if(e < 0)
-        result=1.0/result;
       if(PyObject_IsInstance(self,(PyObject*)&FractionType)) {
         fraction_internal_t f;
         fraction_internal_set_float(&f,result);
@@ -856,6 +893,11 @@ static PyNumberMethods fraction_number_methods = {
   .nb_float = fraction_float,
   .nb_int = fraction_int,
   .nb_power = fraction_pow,
+  .nb_inplace_add = fraction_iadd,
+  .nb_inplace_subtract = fraction_isubtract,
+  .nb_inplace_multiply = fraction_imultiply,
+  .nb_inplace_true_divide = fraction_idivide,
+  .nb_inplace_power = fraction_ipower,
 };
 
 static PyTypeObject FractionType = {

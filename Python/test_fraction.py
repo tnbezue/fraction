@@ -54,17 +54,11 @@ def test_new_zero_args():
 
 def test_new_int():
   th.TestCase(ft+" new/set with one integer argument")
-  test_data = (
-    ( 0,0,1 ),
-    (1,1,1),
-    (-2,-2,1),
-    (-12,-12,1),
-    (12,12,1)
-  )
+  test_data = ( 0 , 1, -2, -12, 12 )
   for d in test_data:
-    msg = "{}({}) = ({}/{})".format(ft,*d)
-    f = FractionType(d[0])
-    th.Test(msg,R(f,d[1],d[2]))
+    msg = "{}({}) = ({}/1)".format(ft,d,d)
+    f = FractionType(d)
+    th.Test(msg,R(f,d,1) and type(f) == FractionType)
 
 def test_new_float():
   th.TestCase(ft+" new/set with one floating point argument")
@@ -80,7 +74,7 @@ def test_new_float():
   for d in test_data:
     msg = "{}({}) = ({}/{})".format(ft,*d)
     f = FractionType(d[0])
-    th.Test(msg,R(f,d[1],d[2]))
+    th.Test(msg,R(f,d[1],d[2]) and type(f) == FractionType)
 
 def test_new_string():
   th.TestCase(ft+" new with one string arguemtn")
@@ -98,7 +92,7 @@ def test_new_string():
   for d in test_data:
     msg = "Set(\"{}\") = ({}/{})".format(*d)
     f = FractionType(d[0])
-    th.Test(msg,R(f,d[1],d[2]))
+    th.Test(msg,R(f,d[1],d[2]) and type(f) == FractionType)
 
 def test_new_fraction():
   th.TestCase(ft+" new with one fraction argument")
@@ -112,7 +106,7 @@ def test_new_fraction():
   for d in test_data:
     f = FractionType(d[0])
     msg = "{}({}/{}) = ({}/{})".format(ft,d[0].numerator,d[0].denominator,d[1],d[2])
-    th.Test(msg,R(f,d[1],d[2]))
+    th.Test(msg,R(f,d[1],d[2]) and type(f) == FractionType)
 
 def test_new_int_int():
   th.TestCase(ft+" new two integer arguments")
@@ -128,7 +122,7 @@ def test_new_int_int():
   for d in test_data:
     msg = "{}({},{}) = ({}/{})".format(ft,*d)
     f = FractionType(d[0],d[1])
-    th.Test(msg,R(f,d[2],d[3]))
+    th.Test(msg,R(f,d[2],d[3]) and type(f) == FractionType)
 
 def test_new_int_int_int():
   th.TestCase(ft+" new/set with three integer arguments")
@@ -145,7 +139,7 @@ def test_new_int_int_int():
   for d in test_data:
     msg = "{}({},{},{}) = ({}/{})".format(ft,*d)
     f = FractionType(d[0],d[1],d[2])
-    th.Test(msg,R(f,d[3],d[4]))
+    th.Test(msg,R(f,d[3],d[4]) and type(f) == FractionType)
 
 def test_str():
   test_data = None
@@ -642,6 +636,160 @@ def test_number_power_fraction():
     r = d[0] ** d[1]
     th.Test(msg,abs(r - d[2]) < 5e-6 and type(r) == float)
 
+def test_fraction_inplace_add_fraction():
+  th.TestCase("Fraction inplace add fraction")
+  test_data = (
+    ( FractionType(0,1), FractionType(0,1), FractionType(0,1)),
+    ( FractionType(0,1), FractionType(1,1), FractionType(1,1)),
+    ( FractionType(3,5), FractionType(-2,9), FractionType(17,45)),
+    ( FractionType(-2,8), FractionType(-6,8), FractionType(-1,1)),
+    ( FractionType(7,3), FractionType(10,7), FractionType(79,21)),
+    ( FractionType(-5,7), FractionType(25,35), FractionType(0,1)),
+  )
+  for d in test_data:
+    msg = "({}) += ({})  ({})".format(*d)
+    f = FractionType(d[0])
+    f += d[1]
+    th.Test(msg,f == d[2] and type(f) == FractionType)
+
+def test_fraction_inplace_sub_fraction():
+  th.TestCase("Fraction inplace subtract fraction")
+  test_data = (
+    ( FractionType(0,1), FractionType(0,1), FractionType(0,1)),
+    ( FractionType(0,1), FractionType(1,1), FractionType(-1,1)),
+    ( FractionType(3,5), FractionType(-2,9), FractionType(37,45)),
+    ( FractionType(-2,8), FractionType(-6,8), FractionType(1,2)),
+    ( FractionType(7,3), FractionType(10,7), FractionType(19,21)),
+    ( FractionType(-5,7), FractionType(25,35), FractionType(-10,7)),
+  )
+  for d in test_data:
+    msg = "({}) -= ({})  ({})".format(*d)
+    f = FractionType(d[0])
+    f -= d[1]
+    th.Test(msg,f == d[2] and type(f) == FractionType)
+
+def test_fraction_inplace_mul_fraction():
+  th.TestCase("Fraction inplace multiply fraction")
+  test_data = (
+    ( FractionType(0,1), FractionType(0,1), FractionType(0,1)),
+    ( FractionType(0,1), FractionType(1,1), FractionType(0,1)),
+    ( FractionType(3,5), FractionType(-2,9), FractionType(-2,15)),
+    ( FractionType(-2,8), FractionType(-6,8), FractionType(3,16)),
+    ( FractionType(7,3), FractionType(10,7), FractionType(10,3)),
+    ( FractionType(-5,7), FractionType(25,35), FractionType(-25,49)),
+  )
+  for d in test_data:
+    msg = "({}) * ({}) = ({})".format(*d)
+    f = FractionType(d[0])
+    f *= d[1]
+    th.Test(msg,f == d[2] and type(f) == FractionType)
+
+def test_fraction_inplace_div_fraction():
+  th.TestCase("Fraction inplace divide fraction")
+  test_data = (
+    ( FractionType(0,1), FractionType(1,1), FractionType(0,1)),
+    ( FractionType(3,5), FractionType(-2,9), FractionType(-27,10)),
+    ( FractionType(-2,8), FractionType(-6,8), FractionType(1,3)),
+    ( FractionType(7,3), FractionType(10,7), FractionType(49,30)),
+    ( FractionType(-5,7), FractionType(25,35), FractionType(-1,1)),
+  )
+  for d in test_data:
+    msg = "({}) / ({}) = ({})".format(*d)
+    f = FractionType(d[0])
+    f /= d[1]
+    th.Test(msg,f == d[2] and type(f) == FractionType)
+
+def test_fraction_inplace_pow_fraction():
+  th.TestCase("Fraction inplace power to fraction")
+  test_data = (
+    ( FractionType(1,2), FractionType(1,2), FractionType(408,577) ),
+    ( FractionType(5,2), FractionType(-2,5), FractionType(192,277) ),
+    ( FractionType(2,3), FractionType(2,3), FractionType(1321,1731) ),
+    ( FractionType(2,3), FractionType(-2,3), FractionType(1731,1321) ),
+  )
+  for d in test_data:
+    msg = "({}) ** ({}) = ({})".format(*d)
+    f = FractionType(d[0])
+    f **= d[1]
+    th.Test(msg,f == d[2] and isinstance(f,FractionType))
+
+def test_fraction_inplace_add_number():
+  th.TestCase("Fraction inplace add number")
+  test_data = (
+    ( FractionType(0,1), (0/1), FractionType(0,1)),
+    ( FractionType(0,1), (1/1), FractionType(1,1)),
+    ( FractionType(3,5), (-2/9), FractionType(17,45)),
+    ( FractionType(-2,8), (-6/8), FractionType(-1,1)),
+    ( FractionType(7,3), (10/7), FractionType(79,21)),
+    ( FractionType(-5,7), (25/35), FractionType(0,1)),
+  )
+  for d in test_data:
+    msg = "({}) += ({})  ({})".format(*d)
+    f = FractionType(d[0])
+    f += d[1]
+    th.Test(msg,f == d[2] and type(f) == FractionType)
+
+def test_fraction_inplace_sub_number():
+  th.TestCase("Fraction inplace subtract number")
+  test_data = (
+    ( FractionType(0,1), (0/1), FractionType(0,1)),
+    ( FractionType(0,1), (1/1), FractionType(-1,1)),
+    ( FractionType(3,5), (-2/9), FractionType(37,45)),
+    ( FractionType(-2,8), (-6/8), FractionType(1,2)),
+    ( FractionType(7,3), (10/7), FractionType(19,21)),
+    ( FractionType(-5,7), (25/35), FractionType(-10,7)),
+  )
+  for d in test_data:
+    msg = "({}) -= ({})  ({})".format(*d)
+    f = FractionType(d[0])
+    f -= d[1]
+    th.Test(msg,f == d[2] and type(f) == FractionType)
+
+def test_fraction_inplace_mul_number():
+  th.TestCase("Fraction inplace multiply number")
+  test_data = (
+    ( FractionType(0,1), (0/1), FractionType(0,1)),
+    ( FractionType(0,1), (1/1), FractionType(0,1)),
+    ( FractionType(3,5), (-2/9), FractionType(-2,15)),
+    ( FractionType(-2,8), (-6/8), FractionType(3,16)),
+    ( FractionType(7,3), (10/7), FractionType(10,3)),
+    ( FractionType(-5,7), (25/35), FractionType(-25,49)),
+  )
+  for d in test_data:
+    msg = "({}) * ({}) = ({})".format(*d)
+    f = FractionType(d[0])
+    f *= d[1]
+    th.Test(msg,f == d[2] and type(f) == FractionType)
+
+def test_fraction_inplace_div_number():
+  th.TestCase("Fraction inplace divide number")
+  test_data = (
+    ( FractionType(0,1), (1/1), FractionType(0,1)),
+    ( FractionType(3,5), (-2/9), FractionType(-27,10)),
+    ( FractionType(-2,8), (-6/8), FractionType(1,3)),
+    ( FractionType(7,3), (10/7), FractionType(49,30)),
+    ( FractionType(-5,7), (25/35), FractionType(-1,1)),
+  )
+  for d in test_data:
+    msg = "({}) / ({}) = ({})".format(*d)
+    f = FractionType(d[0])
+    f /= d[1]
+    th.Test(msg,f == d[2] and type(f) == FractionType)
+
+def test_fraction_inplace_pow_number():
+  th.TestCase("Fraction inplace power to number")
+  test_data = (
+    ( FractionType(1,2), (1/2), FractionType(408,577) ),
+    ( FractionType(5,2), (-2/5), FractionType(192,277) ),
+    ( FractionType(2,3), (2/3), FractionType(1321,1731) ),
+    ( FractionType(2,3), (-2/3), FractionType(1731,1321) ),
+  )
+  for d in test_data:
+    msg = "({}) ** ({}) = ({})".format(*d)
+    f = FractionType(d[0])
+    f **= d[1]
+    th.Test(msg,f == d[2] and isinstance(f,FractionType))
+
 def test_round():
   th.TestCase("Fraction round")
   round_data = (
@@ -667,6 +815,7 @@ def test_abs():
   for d in round_data:
     msg = "abs({}) = ({})".format(*d)
     f=abs(d[0])
+    print(d[0]," ",f)
     th.Test(msg,f == d[1] and type(f) == FractionType)
 
 tests = (
@@ -712,6 +861,16 @@ tests = (
     test_number_times_fraction,
     test_number_divided_by_fraction,
     test_number_power_fraction,
+    test_fraction_inplace_add_fraction,
+    test_fraction_inplace_sub_fraction,
+    test_fraction_inplace_mul_fraction,
+    test_fraction_inplace_div_fraction,
+#    test_fraction_inplace_pow_fraction,
+    test_fraction_inplace_add_number,
+    test_fraction_inplace_sub_number,
+    test_fraction_inplace_mul_number,
+    test_fraction_inplace_div_number,
+#    test_fraction_inplace_pow_number,
     test_round,
     test_abs
   )

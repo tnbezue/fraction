@@ -16,9 +16,8 @@
 */
 
 #include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
 #include <math.h>
+#include <ctype.h>
 #include "fraction.h"
 
 // Euclid's algorithm to find greatest common divisor
@@ -76,6 +75,125 @@ void fraction_set_private(fraction_t* f,int64_t n,int64_t d)
   f->numerator_=(fraction_numerator_denominator_t)n;
   f->denominator_=(fraction_numerator_denominator_t)d;
 }
+static int space(const char* str)
+{
+  const char *ptr = str;
+  for(;isspace(*ptr); ptr++);
+  return ptr - str;
+}
+
+static int digits(const char* str)
+{
+  const char* ptr =str;
+  for(;isdigit(*ptr);ptr++);
+  return (ptr - str) ;
+}
+
+typedef struct {
+  double value;
+  int valid;
+} double_result_t;
+
+#define is_int(d) ((int64_t)d == d)
+#define signof(d) ((d) < 0 ? -1 : 1)
+
+static double_result_t is_number(const char* str)
+{
+  double_result_t r={0,0};
+  char* ptr;
+  str+=space(str);
+  if(*str != 0) {
+    r.value = strtod(str,&ptr);
+    if(ptr) {
+      ptr+=space(ptr);
+      r.valid = *ptr == 0;
+    }
+  }
+  return r;
+}
+
+typedef struct {
+  int64_t numerator;
+  int64_t denominator;
+  int valid;
+} fraction_result_t;
+
+// (+=)? ( ( integer? integer/integer ) | ( integer (/ integer )? ) )
+static fraction_result_t is_fraction(const char* str)
+{
+  fraction_result_t r;
+  int is_valid_fraction=0;
+  int64_t w=0,n=0,d=1;
+  const char* ptr=str;
+  ptr+=space(ptr);
+  if(*ptr != 0) {
+    const char* sign_ptr=ptr;
+    if(*ptr == '+' || *ptr == '-')
+      ptr++;
+    int ndigits;
+    if((ndigits=digits(ptr)) > 0) {
+      is_valid_fraction = 1;
+      n=atoll(sign_ptr);
+      ptr += ndigits;
+      if(*ptr == '/') {
+        is_valid_fraction=0;
+        ptr++;
+        sign_ptr=ptr;
+        if(*ptr == '+' || *ptr == '-')
+          ptr++;
+        if((ndigits=digits(ptr))>0) {
+          d=atoll(sign_ptr);
+          is_valid_fraction=1;
+          ptr+= ndigits;
+        }
+      } else {
+        ptr += space(ptr);
+        sign_ptr=ptr;
+        if(*ptr == '+' || *ptr == '-')
+          ptr++;
+        if((ndigits=digits(ptr)) > 0) {
+          is_valid_fraction=0;
+          w=n;
+          n=atoll(sign_ptr);
+          ptr+=ndigits;
+          if(*ptr == '/') {
+            ptr++;
+            sign_ptr=ptr;
+            if(*ptr == '+' || *ptr == '-')
+              ptr++;
+            if((ndigits=digits(ptr))>0) {
+              d=atoll(sign_ptr);
+              is_valid_fraction=1;
+              ptr+= ndigits;
+            }
+          }
+        }
+      }
+    }
+  }
+  ptr += space(ptr);
+  r.valid = *ptr == 0 && is_valid_fraction;
+  if(r.valid) {
+    int sign = signof(w)*signof(n)*signof(d);
+    w=llabs(w);
+    n=llabs(n);
+    d=llabs(d);
+    r.numerator = sign*(w*d + n);
+    r.denominator = d;
+  }
+  return r;
+}
+
+void fraction_set_string(fraction_t* f,const char* str)
+{
+  double_result_t dr=is_number(str);
+  fraction_result_t fr;
+  if(dr.valid) {
+    fraction_set_double(f,dr.value);
+  } else if((fr=is_fraction(str)).valid) {
+    fraction_set_private(f,fr.numerator,fr.denominator);
+  }
+}
 
 void fraction_set(fraction_t* f,fraction_numerator_denominator_t n,fraction_numerator_denominator_t d)
 {
@@ -117,6 +235,48 @@ fraction_t fraction_divided_by_fraction(fraction_t a,fraction_t b)
   return f;
 }
 
+fraction_t fraction_power_fraction(fraction_t b,fraction_t e)
+{
+  fraction_t f;
+  fraction_set_double(&f,pow((double)b.numerator_/(double)b.denominator_,(double)e.numerator_/(double)e.denominator_));
+  return f;
+}
+
+fraction_t fraction_plus_double(fraction_t f,double d)
+{
+  fraction_t f2;
+  fraction_set_double(&f2,d);
+  return fraction_plus_fraction(f,f2);
+}
+
+fraction_t fraction_minus_double(fraction_t f,double d)
+{
+  fraction_t f2;
+  fraction_set_double(&f2,d);
+  return fraction_minus_fraction(f,f2);
+}
+
+fraction_t fraction_times_double(fraction_t f,double d)
+{
+  fraction_t f2;
+  fraction_set_double(&f2,d);
+  return fraction_times_fraction(f,f2);
+}
+
+fraction_t fraction_divided_by_double(fraction_t f,double d)
+{
+  fraction_t f2;
+  fraction_set_double(&f2,d);
+  return fraction_divided_by_fraction(f,f2);
+}
+
+fraction_t fraction_power_double(fraction_t b,double e)
+{
+  fraction_t f;
+  fraction_set_double(&f,pow((double)b.numerator_/(double)b.denominator_,e));
+  return f;
+}
+
 int fraction_cmp(fraction_t lhs,fraction_t rhs)
 {
   int64_t nd = (int64_t)lhs.numerator_*(int64_t)rhs.denominator_;
@@ -140,6 +300,27 @@ int double_cmp_fraction(double lhs,fraction_t rhs)
   return -fraction_cmp_double(rhs,lhs);
 }
 
+fraction_t fraction_neg(fraction_t f)
+{
+  fraction_t fnew = f;
+  fnew.numerator_=-fnew.numerator_;
+  return fnew;
+}
+
+fraction_t fraction_reciprocal(fraction_t f)
+{
+  fraction_t fnew;
+  if(f.numerator_ < 0) {
+    fnew.numerator_=-f.denominator_;
+    fnew.denominator_=-f.numerator_;
+  } else {
+    fnew.numerator_=f.denominator_;
+    fnew.denominator_=f.numerator_;
+  }
+  return fnew;
+}
+
+
 fraction_t fraction_abs(fraction_t f)
 {
   fraction_t f_abs;
@@ -149,14 +330,14 @@ fraction_t fraction_abs(fraction_t f)
 }
 
 double fraction_epsilon=5e-6;
-
-fraction_t fraction_from_double(double d)
+/*
+fraction_t fraction_set_double(double d)
 {
   fraction_t f;
   fraction_set_double(&f,d);
   return f;
 }
-
+*/
 #ifdef CALCULATE_LOOP_STATISTICS
 int nLoops;
 #endif
@@ -252,26 +433,34 @@ void fraction_round(fraction_t* f,fraction_numerator_denominator_t denom)
     fraction_set(f,(int64_t)round((double)denom*(double)f->numerator_/(double)f->denominator_),(int64_t)denom);
   }
 }
+#define TO_S_BUF_SIZE 64
+#define N_TO_S_BUF 5
+typedef char to_s_buf[TO_S_BUF_SIZE];
+static to_s_buf to_s_bufs [N_TO_S_BUF];
+static int icurrent_buf = 0;
 
 // String shou
-void fraction_to_s(fraction_t f,char* str,int n)
+const char* fraction_to_s(fraction_t f)
 {
-  int np=snprintf(str,n,"%d",f.numerator_);
+  char* current_buf = to_s_bufs[icurrent_buf];
+  int np=snprintf(current_buf,TO_S_BUF_SIZE,"%" PRIdND,f.numerator_);
   if(f.denominator_ != 1)
-    snprintf(str+np,n-np,"/%d",f.denominator_);
+    snprintf(current_buf+np,TO_S_BUF_SIZE-np,"/%" PRIdND,f.denominator_);
+  icurrent_buf++;
+  if(icurrent_buf == N_TO_S_BUF)
+    icurrent_buf=0;
+  return current_buf;
 }
 
 // String shou
-void fraction_to_mixed_s(fraction_t f,char* str,int n)
+const char* fraction_to_mixed_s(fraction_t f)
 {
-  int whole=f.numerator_/f.denominator_;
-  if(whole != 0) {
-    int np=snprintf(str,n,"%d",whole);
-    int num = f.numerator_ - whole*f.denominator_;
-    if(num != 0) {
-      num=abs(num);
-      snprintf(str+np,n-np," %d/%d",num,f.denominator_);
-    }
+  char* current_buf = to_s_bufs[icurrent_buf];;
+  if((f.denominator_ != 1) && (llabs(f.numerator_) > f.denominator_)) {
+    fraction_numerator_denominator_t whole=f.numerator_/f.denominator_;
+    fraction_numerator_denominator_t num = llabs(f.numerator_) - llabs(whole)*f.denominator_;
+    snprintf(current_buf,TO_S_BUF_SIZE,"%" PRIdND " %" PRIdND "/%" PRIdND,whole,num,f.denominator_);
   } else
-    fraction_to_s(f,str,n);
+    current_buf = (char*)fraction_to_s(f);
+  return current_buf;
 }

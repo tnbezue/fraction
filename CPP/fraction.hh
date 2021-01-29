@@ -353,6 +353,12 @@ class fraction_t {
 
 
   /*
+   * Power function for fractions
+  **/
+  fraction_t pow(const fraction_t&,const fraction_t&);
+  fraction_t pow(const fraction_t&,double);
+  double pow(double,const fraction_t&);
+  /*
    * Output fraction to stream
   */
   inline std::ostream& operator<<(std::ostream& o,const fraction_t& f) { o << f.to_s(); return o; }
@@ -363,18 +369,13 @@ class fraction_t {
   class mixed_fraction_t : public fraction_t {
     public:
       mixed_fraction_t() : fraction_t() { }
-      mixed_fraction_t(fraction_numerator_denominator_t w,fraction_numerator_denominator_t n,fraction_numerator_denominator_t d) : fraction_t() { set(w,n,d); }
+      mixed_fraction_t(fraction_numerator_denominator_t n) : fraction_t(n) { }
+      mixed_fraction_t(fraction_numerator_denominator_t n,fraction_numerator_denominator_t d) : fraction_t(n,d) { }
+      mixed_fraction_t(fraction_numerator_denominator_t w,fraction_numerator_denominator_t n,fraction_numerator_denominator_t d) : fraction_t(w,n,d) { }
       mixed_fraction_t(double d) : fraction_t(d) { }
       mixed_fraction_t(const char* str) : fraction_t(str) { }
       mixed_fraction_t(const mixed_fraction_t& f) { numerator_=f.numerator(); denominator_=f.denominator(); }
       mixed_fraction_t(const fraction_t& f) { numerator_=f.numerator(); denominator_=f.denominator(); }
-    /*
-     * Set the fraction value from mixed fraction
-    */
-    void set(fraction_numerator_denominator_t w,fraction_numerator_denominator_t n,fraction_numerator_denominator_t d) {
-      set_internal(static_cast<int64_t>(w)*static_cast<int64_t>(d)+(w<0 ? -1 : 1)*static_cast<int64_t>(n),d);
-      //set(w*d+(w<0 ? -1 : 1)*n,d);
-    }
 
     std::string to_s() const;
   };

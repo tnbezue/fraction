@@ -173,7 +173,7 @@ bool fraction_t::set_number_string(const char* str)
       end_ptr+=space(end_ptr);
       valid = *end_ptr == 0;
       if(valid)
-        set(value);
+        *this = value;
     }
   }
   return valid;
@@ -294,17 +294,40 @@ int fraction_t::cmp(const fraction_t& lhs,double d)
   return 1;
 }
 
+static double do_pow(double b,double e)
+{
+/*  if(b == 0 && e == 0)
+    throw exception*/
+  if((b>0) || (b<0 && (static_cast<int>(e) == e))) {
+    return pow(b,e);
+  } /* else { // b is negative and e is not an integer. Result is complex number.  Throw exceptio for now
+    throw exception
+  } */
+  return 0;
+}
+
+fraction_t pow(const fraction_t& b,const fraction_t& e)
+{
+  return fraction_t(do_pow(static_cast<double>(b),static_cast<double>(e)));
+}
+
+fraction_t pow(const fraction_t& b,double e)
+{
+  return fraction_t(do_pow(static_cast<double>(b),e));
+}
+
+double  pow(double b,const fraction_t& e)
+{
+  return do_pow(b,static_cast<double>(e));
+}
+
 std::string mixed_fraction_t::to_s() const
 {
-  if (denominator_ > numerator_)
+  if (denominator_ == 1 || denominator_ > llabs(numerator_))
     return fraction_t::to_s();
-  int whole=numerator_/denominator_;
   char str[64];
-  int np=sprintf(str,"%d",whole);
-  int numerator=numerator_-whole*denominator_;
-  if(numerator != 0) {
-    numerator=::abs(numerator);
-    sprintf(str+np," %d/%d",numerator,denominator_);
-  }
+  long long whole=numerator_/denominator_;
+  long long numerator=llabs(numerator_)-llabs(whole)*denominator_;
+  sprintf(str,"%ld %ld/%ld",whole,numerator,denominator_);
   return std::string(str);
 }

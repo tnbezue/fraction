@@ -15,21 +15,28 @@ procedure RunTests(tests: ProcArray);
 implementation
 
 var
-  nPass,nFail,nTotalPass,nTotalFail: integer;
+  nPass,nFail,nTotalPass,nTotalFail,nTestCases: integer;
 
 procedure Summary;
 begin
+  writeln();
+  writeln('Summary');
   writeln('  Passed: ',nPass);
   writeln('  Failed: ',nFail);
+  nPass := 0;
+  nFail := 0;
 end;
 
 procedure FinalSummary;
 begin
-  if ((nPass > 0) or (nFail > 0)) then
-    Summary();
   nTotalPass := nTotalPass + nPass;
   nTotalFail := nTotalFail + nFail;
+  if ((nPass > 0) or (nFail > 0)) then
+    Summary();
   writeln();
+  writeln('Final Summary');
+  writeln('  Test Cases: ',nTestCases);
+  writeln('  Total Tests: ',(nTotalPass+nTotalFail));
   writeln('  Total Passed: ',nTotalPass);
   writeln('  Total Failed: ',nTotalFail);
 end;
@@ -38,14 +45,13 @@ procedure TestCase(msg: string);
 begin
   if ((nPass > 0) or (nFail > 0)) then
   begin
-    Summary();
     nTotalPass := nTotalPass + nPass;
     nTotalFail := nTotalFail + nFail;
-    nPass := 0;
-    nFail := 0;
+    Summary();
     writeln;
   end;
   writeln(msg);
+  nTestCases += 1;
 end;
 
 procedure Test(msg: string; var condition: boolean);
@@ -72,13 +78,16 @@ begin
   nFail := 0;
   nTotalPass := 0;
   nTotalFail := 0;
+  nTestCases := 0;
   if paramcount > 0 then
   begin
     for i := 1 to paramcount do
     begin
       itest := StrToInt(ParamStr(i));
       if itest < length(tests) then
-        tests[itest]()
+        begin
+        tests[itest]();
+        end
       else
         writeln('No test for ',itest);
     end;
@@ -86,7 +95,9 @@ begin
   else
   begin
     for i := 0 to high(tests) do
-      tests[i]();
+      begin
+        tests[i]();
+      end
   end;
   FinalSummary();
 

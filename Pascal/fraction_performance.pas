@@ -1,5 +1,22 @@
+(*
+		Copyright (C) 2019-2021  by Terry N Bezue
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*)
+
 program fraction_performance;
-uses unixtype,crt,fract,sysutils,linux,getopts;
+uses unixtype,crt,fraction,sysutils,linux,getopts;
 
 type
   Frequency = object
@@ -12,22 +29,22 @@ type
   avg,standard_deviation: real;
   sample_size,sample_median,sample_mode: longint;
 
-  function Average: Fraction;
-  function StandardDeviation: Fraction;
+  function Average: TMixedFraction;
+  function StandardDeviation: TMixedFraction;
   function Count: longint;
   function Mode: longint;
   function Median: longint;
 end;
 
-function Statistics.Average: Fraction;
+function Statistics.Average: TMixedFraction;
 begin
-  Average.SetReal(avg);
+  Average.fset(avg);
   Average := Average.Round(100);
 end;
 
-function Statistics.StandardDeviation: Fraction;
+function Statistics.StandardDeviation: TMixedFraction;
 begin
-  StandardDeviation.SetReal(standard_deviation);
+  StandardDeviation.fset(standard_deviation);
   StandardDeviation := StandardDeviation.Round(100);
 end;
 
@@ -178,10 +195,10 @@ begin
   writeln('  Sample size: ',s.Count());
   writeln('  Min ',xlabel,': ',freq_array[0].value);
   writeln('  Max ',xlabel,': ',freq_array[size-1].value);
-  writeln('  Average: ',s.Average.ToMixedStr);
+  writeln('  Average: ',string(s.Average));
   writeln('  Median: ',s.Median);
   writeln('  Mode: ',s.Mode);
-  writeln('  Standard Deviation: ',s.StandardDeviation.ToMixedStr);
+  writeln('  Standard Deviation: ',string(s.StandardDeviation));
   DisplayGraph(xlabel,'Frequency');
 end;
 
@@ -192,81 +209,54 @@ end;
 
 type PFrequencyArray = ^FrequencyArray;
 
-procedure DoTest(denominator: longint; var time_freq,loop_freq: PFrequencyArray);
+procedure DoTest(value: real; var time_freq,loop_freq: PFrequencyArray);
 var
   i: longint;
-  f: Fraction;
+  f: TFraction;
   start,finish: timespec;
 
 begin
-  for i := 0 to denominator-1 do
-  begin
-    clock_gettime(CLOCK_MONOTONIC,@start);
-    f.SetReal(i/denominator);
-    clock_gettime(CLOCK_MONOTONIC,@finish);
-    if i > 0 then
-    begin
-      time_freq^.increment(time_diff_in_tens_ns(start,finish));
-      loop_freq^.increment(loops);
-    end;
-  end;
+  clock_gettime(CLOCK_PROCESS_CPUTIME_ID,@start);
+  for i := 1 to 1000 do
+    f.fset(value);
+  clock_gettime(CLOCK_PROCESS_CPUTIME_ID,@finish);
+  time_freq^.increment(round(time_diff_in_tens_ns(start,finish)/1000));
+  loop_freq^.increment(loops);
 end;
 
 procedure SingleTest(denominator: longint);
 var
   time_freq,loop_freq: FrequencyArray;
   ptime_freq,ploop_freq: PFrequencyArray;
-
+  i: longint;
 begin
   ptime_freq := @time_freq;
   ploop_freq := @loop_freq;
-  DoTest(denominator,ptime_freq,ploop_freq);
+  for i := 1 to denominator-1 do
+    DoTest(i/denominator,ptime_freq,ploop_freq);
+
   time_freq.Sort;
   loop_freq.Sort;
   time_freq.ShowResults('Time (in tens of nanoseconds) to convert floating point to fraction','Time');
   loop_freq.ShowResults('Iterations to convert floating point to fraction','Loops');
 end;
 
-procedure RandomTest(maxTests: longint);
+procedure RandomTest(nTests: longint);
 var
-  denominators: array of longint;
-  i,denominator,nTests: longint;
-  found: boolean;
+  i: longint;
   time_freq,loop_freq: FrequencyArray;
   ptime_freq,ploop_freq: PFrequencyArray;
 
 begin
   Randomize;
-  nTests := 0;
-  setlength(denominators,0);
-  while nTests < maxTests do
-  begin
-    denominator := Random(maxTests) + 100;
-    found := false;
-    for i := 0 to high(denominators) do
-      if denominator = denominators[i] then
-      begin
-        found := true;
-        break;
-      end;
-    if found = false then
-    begin
-      i:=length(denominators);
-      setlength(denominators,i+1);
-      denominators[i] := denominator;
-      nTests += denominator-1;
-    end;
-  end;
-
   ptime_freq := @time_freq;
   ploop_freq := @loop_freq;
-  for i := 0 to high(denominators) do
-    DoTest(denominators[i],ptime_freq,ploop_freq);
+  for i:= 1 to nTests do
+    DoTest(Random(1000)/Random(1000),ptime_freq,ploop_freq);
   time_freq.Sort;
   loop_freq.Sort;
   time_freq.ShowResults('Time (in tens of nanoseconds) to convert floating point to fraction','Time');
   loop_freq.ShowResults('Iterations to convert floating point to fraction','Loops');
-
 end;
 
 procedure syntax;
@@ -281,8 +271,8 @@ begin
   writeln;
   writeln('Where:  -h | --help prints this help message');
   writeln('        -s | --single N -- gather statistics using N as denominator (runs tests using fractions 1/N to (N-1)/N)');
-  writeln('        -r | --random N -- gather statistics running a minimum of N tests using random denominators');
-  writeln('        The default is to run a single test using 1000 as denominator and 1000 minimum random tests');
+  writeln('        -r | --random N -- gather statistics running N tests using random values');
+  writeln('        The default is to run a single test using 1000 as denominator and 1000 random tests');
   writeln('Examples');
   writeln('   1) To run default case');
   writeln('      ',pgm);
@@ -337,4 +327,3 @@ begin
     RandomTest(1000);
   end;
 end.
-

@@ -1,3 +1,20 @@
+(*
+		Copyright (C) 2019-2021  by Terry N Bezue
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*)
+
 unit fraction;
 interface
 uses sysutils,math;
@@ -24,15 +41,23 @@ type TFraction = object
     procedure fset(whole,num,denom: longint); overload;
     procedure fset(d: real); overload;
     function Round(denom: longint): TFraction;
-    function ToStr: string;
-    function ToMixedStr: string;
+//    function ToStr: string;
+//    function ToMixedStr: string;
 end;
 
 type TMixedFraction = object(TFraction)
 end;
 
+type
+  PFraction = ^TFraction;
+  PMixedFraction = ^TMixedFraction;
+
 operator := (r: real) f:TFraction;
 operator := (a: array of longint) f: TFraction;
+
+operator := (r: real) mf: TMixedFraction;
+operator := (a: array of longint) f: TMixedFraction;
+operator := (f: TFraction) mf: TMixedFraction;
 
 operator = (lhs,rhs: TFraction) b : boolean;
 operator <> (lhs,rhs: TFraction) b : boolean;
@@ -322,6 +347,7 @@ operator ** (lhs: real; rhs: TFraction) r: real;
     r := lhs ** (rhs.numerator/rhs.denominator);
   end;
 
+(*
 function TFraction.ToStr: string;
 begin
   if _denominator = 1 then
@@ -329,12 +355,15 @@ begin
   else
     ToStr := Format('%d/%d',[_numerator,_denominator]);
 end;
-
+*)
 operator explicit(f: TFraction) s: string;
   begin
-    s := f.ToStr;
+    if f.denominator = 1 then
+      s := Format('%d',[f.numerator])
+    else
+      s := Format('%d/%d',[f.numerator,f.denominator]);
   end;
-
+(*
 function TFraction.ToMixedStr: string;
 var
   whole,num: longint;
@@ -348,7 +377,7 @@ begin
   else
     ToMixedStr := ToStr();
 end;
-
+*)
 function cmp(lhs,rhs: TFraction): integer;
 begin
   cmp := lhs.numerator*rhs.denominator - rhs.numerator*lhs.denominator;
@@ -487,9 +516,46 @@ operator := (a: array of longint) f: TFraction;
     end;
   end;
 
-operator explicit(mf: TMixedFraction) s: string;
+operator := (r: real) mf:TMixedFraction;
   begin
-    s := mf.ToMixedStr;
+    mf.fset(r);
   end;
 
+operator := (a: array of longint) f: TMixedFraction;
+  var
+    alen: longint;
+    ilow: longint;
+  begin
+    alen := length(a);
+    ilow := low(a);
+    case alen of
+      0: f.fset(0,1);
+      1: f.fset(a[ilow]);
+      2: f.fset(a[ilow],a[ilow+1]);
+    else
+      f.fset(a[ilow],a[ilow+1],a[ilow+2]);
+    end;
+  end;
+
+operator := (f: TFraction) mf: TMixedFraction;
+  begin
+    mf.fset(f.numerator,f.denominator);
+  end;
+
+operator explicit(mf: TMixedFraction) s: string;
+  var
+    whole,num: longint;
+  begin
+    if mf.denominator = 1 then
+      s := Format('%d',[mf.numerator])
+    else
+      if abs(mf.numerator) < mf.denominator then
+        s:= Format('%d/%d',[mf.numerator,mf.denominator])
+      else
+        begin
+          whole := trunc(mf.numerator/mf.denominator);
+          num := abs(mf.numerator) - abs(whole)*mf.denominator;
+          s := format('%d %d/%d',[whole,num,mf.denominator]);
+        end;
+    end;
 end.

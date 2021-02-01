@@ -1,12 +1,36 @@
+(*
+		Copyright (C) 2019-2021  by Terry N Bezue
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*)
+
+(*
+  To compile using normal fractions:
+    fpc -MObjFPC test_fraction.pas
+
+  To compile using mixed fractions:
+    fpc -MObjFPC -dMIXED test_fraction.pas
+*)
 program HelloWorld;
 uses fraction,crt,test_harness,sysutils;
 
 {$ifdef MIXED}
 type
-  fraction_type = mixed_fraction_t;
+  fraction_type = TMixedFraction;
 {$else}
 type
-  fraction_type = fraction_t;
+  fraction_type = TFraction;
 {$endif}
 
 procedure test_gcd;
@@ -286,7 +310,6 @@ procedure test_assign_array_with_three_elements;
       rc := R(f,td.n,td.d);
       Test(msg,rc);
     end;
-    writeln(string(f));
   end;
 
   procedure test_cast_to_string;
@@ -296,6 +319,16 @@ procedure test_assign_array_with_three_elements;
         s: string;
       end;
     var
+{$ifdef MIXED}
+      test_data: array of IAS = (
+        ( ia:(3,1);s:'3' ),
+        ( ia:(3,5);s:'3/5' ),
+        ( ia:(-3,5);s:'-3/5' ),
+        ( ia:(20,7);s:'2 6/7' ),
+        ( ia:(-15,2);s:'-7 1/2' ),
+        ( ia:(2,3);s:'2/3' )
+      );
+{$else}
       test_data: array of IAS = (
         ( ia:(3,1);s:'3' ),
         ( ia:(3,5);s:'3/5' ),
@@ -304,6 +337,7 @@ procedure test_assign_array_with_three_elements;
         ( ia:(-15,2);s:'-15/2' ),
         ( ia:(2,3);s:'2/3' )
       );
+{$endif}
       td: IAS;
       msg: string;
       rc: boolean;
@@ -314,6 +348,7 @@ procedure test_assign_array_with_three_elements;
       begin
         msg := Format('string((%d/%d)) = "%s"',[td.ia[0],td.ia[1],td.s]);
         f := td.ia;
+        writeln(string(f));
         rc := string(f) = td.s;
         Test(msg,rc);
       end;
@@ -1123,7 +1158,7 @@ procedure test_real_plus_fraction;
     begin
       f := td.f;
       msg := Format('(%g) + (%s) = (%g)',[td.r,string(f),td.result]);
-      rc := abs((td.r + f) - td.result) < fraction_t.epsilon;
+      rc := abs((td.r + f) - td.result) < fraction_type.epsilon;
       Test(msg,rc);
     end
   end;
@@ -1148,7 +1183,7 @@ procedure test_real_minus_fraction;
     begin
       f := td.f;
       msg := Format('(%g) - (%s) = (%g)',[td.r,string(f),td.result]);
-      rc := abs((td.r - f) - td.result) < fraction_t.epsilon;
+      rc := abs((td.r - f) - td.result) < fraction_type.epsilon;
       Test(msg,rc);
     end
   end;
@@ -1173,7 +1208,7 @@ procedure test_real_times_fraction;
     begin
       f := td.f;
       msg := Format('(%g) * (%s) = (%g)',[td.r,string(f),td.result]);
-      rc := abs((td.r * f) - td.result) < fraction_t.epsilon;
+      rc := abs((td.r * f) - td.result) < fraction_type.epsilon;
       Test(msg,rc);
     end
   end;
@@ -1197,7 +1232,7 @@ procedure test_real_divided_by_fraction;
     begin
       f := td.f;
       msg := Format('(%g) / (%s) = (%g)',[td.r,string(f),td.result]);
-      rc := abs((td.r / f) - td.result) < fraction_t.epsilon;
+      rc := abs((td.r / f) - td.result) < fraction_type.epsilon;
       Test(msg,rc);
     end
   end;
@@ -1221,7 +1256,7 @@ procedure test_real_power_fraction;
     begin
       f := td.f;
       msg := Format('(%g) ** (%s) = (%g)',[td.r,string(f),td.result]);
-      rc := abs((td.r ** f) - td.result) < fraction_t.epsilon;
+      rc := abs((td.r ** f) - td.result) < fraction_type.epsilon;
       Test(msg,rc);
     end
   end;
@@ -1236,7 +1271,7 @@ procedure test_real_power_fraction;
     f1,f2: fraction_type;
 
   begin
-    TestCase('fraction_t round');
+    TestCase('fraction round');
     for i := 0 to high(round_data) do
     begin
       msg := Format('(%d/%d).Round(%d) = (%d,%d)',[round_data[i,0],round_data[i,1],
